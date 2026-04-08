@@ -370,7 +370,6 @@
     setLoggedIn(false);
   }
 }
-    }
     async function loadConfig(){ const data=await api('/api/app-config'); state.me=data.me; state.companies=data.companies; state.departments=data.departments; fillCompanyOptions(); fillDepartmentOptions(); }
     async function loadStats(){ const data = await api('/api/stats'); $('#sLeaveTotal').textContent = data.leave.total; $('#sLeavePending').textContent = data.leave.pending; $('#sLeaveApproved').textContent = data.leave.approved; $('#sLeaveRejected').textContent = data.leave.rejected; $('#sInterviewMine').textContent = data.interviews.mine.total; $('#sInterviewManage').textContent = data.interviews.manage.total; $('#leaveAccrued').textContent = data.annual_leave_balance.accrued_days; $('#leaveUsed').textContent = data.annual_leave_balance.used_days; $('#leaveRemaining').textContent = data.annual_leave_balance.remaining_days; }
     async function loadApprovers(){ if(!state.me || state.me.role==='ADMIN'){ $('#approverSelect').innerHTML='<option value="">Admin không cần chọn</option>'; return; } const data=await api('/api/approvers'); const arr=data.approvers||[]; $('#approverSelect').innerHTML = arr.length?arr.map(a=>`<option value="${a.id}">${esc(a.full_name)} - ${esc(a.role_label)}${a.department_name?` (${esc(a.department_name)})`:''}</option>`).join(''):'<option value="">Không có người ký phù hợp</option>'; }
