@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: haiconcuu-one-domain
-    env: node
-    plan: starter
-    buildCommand: "npm install"
-    startCommand: "node server.js"
-    autoDeploy: true
-    healthCheckPath: /api/health
