@@ -345,7 +345,31 @@
   applyPermissions();
 }
     async function boot(){
-      try{ const meData=await api('/api/me'); state.me = meData.user; setLoggedIn(true); await loadConfig(); renderUserBox(); await Promise.all([loadStats(),loadApprovers(),loadLeaves(),loadInterviews()]); if(canManageUI()) await loadManageInterviews(); if(state.me.role==='ADMIN') await loadUsers(); }catch{ setLoggedIn(false); }
+  try{
+    const meData = await api('/api/me');
+    state.me = meData.user;
+    setLoggedIn(true);
+
+    await loadConfig();
+    renderUserBox();
+
+    try{ await loadStats(); }catch(e){ console.error('loadStats lỗi:', e); }
+    try{ await loadApprovers(); }catch(e){ console.error('loadApprovers lỗi:', e); }
+    try{ await loadLeaves(); }catch(e){ console.error('loadLeaves lỗi:', e); }
+    try{ await loadInterviews(); }catch(e){ console.error('loadInterviews lỗi:', e); }
+
+    if(canManageUI()){
+      try{ await loadManageInterviews(); }catch(e){ console.error('loadManageInterviews lỗi:', e); }
+    }
+
+    if(state.me.role === 'ADMIN'){
+      try{ await loadUsers(); }catch(e){ console.error('loadUsers lỗi:', e); }
+    }
+  }catch(e){
+    console.error('boot lỗi:', e);
+    setLoggedIn(false);
+  }
+}
     }
     async function loadConfig(){ const data=await api('/api/app-config'); state.me=data.me; state.companies=data.companies; state.departments=data.departments; fillCompanyOptions(); fillDepartmentOptions(); }
     async function loadStats(){ const data = await api('/api/stats'); $('#sLeaveTotal').textContent = data.leave.total; $('#sLeavePending').textContent = data.leave.pending; $('#sLeaveApproved').textContent = data.leave.approved; $('#sLeaveRejected').textContent = data.leave.rejected; $('#sInterviewMine').textContent = data.interviews.mine.total; $('#sInterviewManage').textContent = data.interviews.manage.total; $('#leaveAccrued').textContent = data.annual_leave_balance.accrued_days; $('#leaveUsed').textContent = data.annual_leave_balance.used_days; $('#leaveRemaining').textContent = data.annual_leave_balance.remaining_days; }
