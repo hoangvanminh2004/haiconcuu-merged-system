@@ -360,7 +360,32 @@
       try{ const data = await api('/api/interviews?'+q.toString()); html = (data.interviews||[]).map(i=>`<tr><td>${i.id}</td><td>${esc(i.interview_date||'')}</td><td>${esc(i.company_name||'')}</td><td>${esc(i.recruiter_name||'')}</td><td>${esc(i.full_name)}</td><td>${esc(i.cccd_number)}</td><td>${esc(i.phone)}</td><td>${badgeInterview(i.status)}</td><td>${esc(i.result_note||'')}</td><td>${manageRowActions(i)}</td></tr>`).join('') || '<tr><td colspan="10" class="muted">Chưa có dữ liệu</td></tr>'; }catch(e){ html = `<tr><td colspan="10" class="muted">${esc(e.message)}</td></tr>`; }
       $('#manageBody').innerHTML = html;
     }
-    async function loadUsers(){ try{ const fd=new FormData($('#userFilterForm')); const q=new URLSearchParams(); for(const [k,v] of fd.entries()) if(v) q.set(k,v); state.userFilters = Object.fromEntries(q.entries()); const data = await api('/api/users'+(q.toString()?`?${q.toString()}`:'')); state.users = data.users||[]; $('#userBody').innerHTML = state.users.map(u=>`<tr><td>${u.id}</td><td>${esc(u.username)}</td><td>${esc(u.full_name)}</td><td>${esc(u.role_label)}</td><td>${esc(u.account_type_label)}</td><td>${esc(u.department_name||'')}</td><td>${esc((u.managed_department_names||[]).join(', '))}</td><td>${esc((u.company_names||[]).join(', '))}</td><td>${esc(u.annual_leave_manual_adjustment)}</td><td><div class="actions"><button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button><button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="10" class="muted">Không có dữ liệu</td></tr>'; }catch{ $('#panel-admin-users .table-wrap').classList.add('hidden'); } }</td><td>${esc(u.username)}</td><td>${esc(u.full_name)}</td><td>${esc(u.role_label)}</td><td>${esc(u.account_type_label)}</td><td>${esc(u.department_name||'')}</td><td>${esc((u.company_names||[]).join(', '))}</td><td>${esc(u.annual_leave_manual_adjustment)}</td><td><div class="actions"><button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button><button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="muted">Không có dữ liệu</td></tr>'; }catch{ $('#panel-admin-users .table-wrap').classList.add('hidden'); } }
+    async function loadUsers(){
+  try{
+    const data = await api('/api/users');
+    state.users = data.users || [];
+    $('#userBody').innerHTML = state.users.map(u=>`
+      <tr>
+        <td>${u.id}</td>
+        <td>${esc(u.username)}</td>
+        <td>${esc(u.full_name)}</td>
+        <td>${esc(u.role_label)}</td>
+        <td>${esc(u.account_type_label)}</td>
+        <td>${esc(u.department_name || '')}</td>
+        <td>${esc((u.company_names || []).join(', '))}</td>
+        <td>${esc(u.annual_leave_manual_adjustment)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button>
+            <button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="9" class="muted">Không có dữ liệu</td></tr>';
+  }catch{
+    $('#panel-admin-users .table-wrap').classList.add('hidden');
+  }
+}
     async function loadCompaniesAndDepartmentsTables(){
       const companies = (await api('/api/companies')).companies || []; state.companies = companies; fillCompanyOptions();
       $('#companyBody').innerHTML = companies.map(c=>`<tr><td>${c.id}</td><td>${esc(c.name)}</td><td>${esc(c.code||'')}</td><td><div class="actions"><button class="btn btn-light small editCompanyBtn" data-id="${c.id}">Sửa</button><button class="btn btn-danger small deleteCompanyBtn" data-id="${c.id}">Xóa</button></div></td></tr>`).join('') || '<tr><td colspan="4" class="muted">Chưa có công ty</td></tr>';
