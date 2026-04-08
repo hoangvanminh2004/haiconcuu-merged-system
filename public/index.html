@@ -76,7 +76,7 @@
         <div class="card feature"><h3>Cơ hội ổn định</h3><p>Công việc rõ ràng, thu nhập tốt, môi trường làm việc lâu dài và minh bạch.</p></div>
       </div>
     </section>
-    <section class="section-public wrap" id="Ho-tro">
+    <section class="section-public wrap" id="Dich-vu">
       <h2>Hỗ trợ lao động</h2>
       <div class="grid-3">
         <div class="card feature"><h3>Tuyển lao động chính thức và thời vụ</h3><p>Kết nối doanh nghiệp, quản lý hồ sơ tập trung, đẩy danh sách nhanh lên hệ thống để xử lý theo công ty.</p></div>
@@ -123,7 +123,14 @@
     </aside>
     <main class="content">
       <section id="panel-dashboard" class="panel active">
-        <div class="toolbar"><div><h2 style="margin:0">Tổng quan hệ thống</h2><div class="muted">Theo dõi thông tin cá nhân và nhóm.</div></div><div id="globalFlash"></div></div>
+        <div class="toolbar">
+  <div>
+    <h2 style="margin:0">Tổng quan hệ thống</h2>
+    <div class="muted">Theo dõi thông tin cá nhân và nhóm.</div>
+    <div class="muted" id="dashboardRoleText"></div>
+  </div>
+  <div id="globalFlash"></div>
+</div>
         <div class="stats" style="margin-top:14px">
           <div class="stat"><div class="k">Đơn nghỉ của tôi</div><div class="v" id="sLeaveTotal">0</div></div>
           <div class="stat"><div class="k">Chờ duyệt</div><div class="v" id="sLeavePending">0</div></div>
@@ -318,7 +325,12 @@
       if(!canManageUI() && $('#interviewScopeSelect').value==='manage') $('#interviewScopeSelect').value='mine';
       if(!canViewDeptUI() && $('#interviewScopeSelect').value==='department') $('#interviewScopeSelect').value='mine';
     }
-    function renderUserBox(){ $('#userBox').innerHTML = `<div><strong>${esc(state.me.full_name)}</strong></div><div>${esc(state.me.role_label)} • ${esc(state.me.account_type_label)}</div><div>${esc(state.me.department_name || 'Chưa có phòng ban')}</div>`; $('#dashboardRoleText').textContent = roleText(); applyPermissions(); }
+    function renderUserBox(){
+  $('#userBox').innerHTML = `<div><strong>${esc(state.me.full_name)}</strong></div><div>${esc(state.me.role_label)} • ${esc(state.me.account_type_label)}</div><div>${esc(state.me.department_name || 'Chưa có phòng ban')}</div>`;
+  const roleEl = $('#dashboardRoleText');
+  if (roleEl) roleEl.textContent = roleText();
+  applyPermissions();
+}
     async function boot(){
       try{ const meData=await api('/api/me'); state.me = meData.user; setLoggedIn(true); await loadConfig(); renderUserBox(); await Promise.all([loadStats(),loadApprovers(),loadLeaves(),loadInterviews()]); if(canManageUI()) await loadManageInterviews(); if(state.me.role==='ADMIN') await loadUsers(); }catch{ setLoggedIn(false); }
     }
