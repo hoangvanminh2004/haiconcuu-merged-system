@@ -155,11 +155,22 @@ function isAdmin(user) { return normalizeRole(user?.role) === 'ADMIN'; }
 function canManageInterviews(user) { return isAdmin(user) || normalizeAccountType(user?.account_type, user?.role) === 'QUAN_LY'; }
 function canViewDepartment(user) {
   const role = normalizeRole(user?.role);
-  return ['DEPARTMENT_HEAD', 'DEPUTY_MANAGER'].includes(role) && !!String(user?.department_name || user?.department || '').trim();
+  const ownDept = String(user?.department_name || user?.department || '').trim();
+  const managed = Array.isArray(user?.managed_department_names) ? user.managed_department_names.filter(Boolean) : [];
+  return ['DEPARTMENT_HEAD', 'DEPUTY_MANAGER'].includes(role) && !!(ownDept || managed.length);
 }
 function canApproveLeaves(user) { return ['DEPUTY_MANAGER', 'DEPARTMENT_HEAD', 'ADMIN'].includes(normalizeRole(user?.role)); }
 function getRoleLevel(role) { return ROLE_LEVEL[normalizeRole(role)] || 0; }
 function getDepartmentName(user) { return String(user?.department_name || user?.department || '').trim(); }
+function getManagedDepartmentNames(user) {
+  const set = new Set();
+  const own = getDepartmentName(user);
+  if (own) set.add(own);
+  if (Array.isArray(user?.managed_department_names)) {
+    user.managed_department_names.map((v) => String(v || '').trim()).filter(Boolean).forEach((v) => set.add(v));
+  }
+  return Array.from(set);
+}
 async function queryOne(db, sql, params = []) { const r = await db.query(sql, params); return r.rows[0] || null; }
 function mapUser(row) {
   if (!row) return null;
@@ -180,6 +191,8 @@ function mapUser(row) {
     is_active: row.is_active !== false,
     company_ids: row.company_ids || [],
     company_names: row.company_names || [],
+    managed_department_ids: row.managed_department_ids || [],
+    managed_department_names: row.managed_department_names || [],
     created_at: row.created_at,
   };
 }
@@ -260,15 +273,30 @@ async function enrichUsers(rows) {
      ORDER BY c.name`,
     [ids]
   );
+  const deptAccess = await pool.query(
+    `SELECT uda.user_id, d.id, d.name
+     FROM user_department_access uda
+     INNER JOIN departments d ON d.id = uda.department_id
+     WHERE uda.user_id = ANY($1::int[])
+     ORDER BY d.name`,
+    [ids]
+  );
   const byUser = new Map();
   access.rows.forEach((row) => {
     if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
     byUser.get(row.user_id).push({ id: Number(row.id), name: row.name });
   });
+  const deptByUser = new Map();
+  deptAccess.rows.forEach((row) => {
+    if (!deptByUser.has(row.user_id)) deptByUser.set(row.user_id, []);
+    deptByUser.get(row.user_id).push({ id: Number(row.id), name: row.name });
+  });
   return rows.map((row) => ({
     ...row,
     company_ids: (byUser.get(row.id) || []).map((item) => item.id),
     company_names: (byUser.get(row.id) || []).map((item) => item.name),
+    managed_department_ids: (deptByUser.get(row.id) || []).map((item) => item.id),
+    managed_department_names: (deptByUser.get(row.id) || []).map((item) => item.name),
   }));
 }
 async function getCurrentUser(userId) {
@@ -318,6 +346,8 @@ function setSessionUser(req, user) {
     department_name: user.department_name || user.department || '',
     department: user.department_name || user.department || '',
     company_ids: user.company_ids || [],
+    managed_department_ids: user.managed_department_ids || [],
+    managed_department_names: user.managed_department_names || [],
   };
 }
 
@@ -398,8 +428,9 @@ function buildAccessibleWhere(user, scope, filters = {}) {
   if (currentScope === 'mine') {
     where.push(`i.recruiter_id = ${addParam(user.id)}`);
   } else if (currentScope === 'department') {
-    if (!canViewDepartment(user)) return { empty: true, params: [], whereSql: 'WHERE 1=0' };
-    where.push(`COALESCE(r.department, '') = ${addParam(getDepartmentName(user))}`);
+    const deptNames = getManagedDepartmentNames(user);
+    if (!canViewDepartment(user) || !deptNames.length) return { empty: true, params: [], whereSql: 'WHERE 1=0' };
+    where.push(`COALESCE(d.name, r.department, '') = ANY(${addParam(deptNames)}::text[])`);
   } else if (currentScope === 'manage') {
     if (isAdmin(user)) {
     } else if (canManageInterviews(user)) {
@@ -420,11 +451,13 @@ function buildAccessibleWhere(user, scope, filters = {}) {
   if (filters.status) where.push(`i.status = ${addParam(String(filters.status))}`);
   if (filters.interview_date) where.push(`i.interview_date = ${addParam(String(filters.interview_date))}`);
   if (filters.interview_shift) where.push(`i.interview_shift = ${addParam(String(filters.interview_shift))}`);
+  if (filters.department_name) where.push(`COALESCE(d.name, r.department, '') ILIKE ${addParam(`%${String(filters.department_name).trim()}%`)}`);
+  if (filters.recruiter_name) where.push(`COALESCE(r.full_name, '') ILIKE ${addParam(`%${String(filters.recruiter_name).trim()}%`)}`);
   if (filters.q) {
     const q = `%${String(filters.q).trim()}%`;
     if (q !== '%%') {
       const p = addParam(q);
-      where.push(`(i.full_name ILIKE ${p} OR i.cccd_number ILIKE ${p} OR i.phone ILIKE ${p} OR c.name ILIKE ${p})`);
+      where.push(`(i.full_name ILIKE ${p} OR i.cccd_number ILIKE ${p} OR i.phone ILIKE ${p} OR c.name ILIKE ${p} OR COALESCE(r.full_name, '') ILIKE ${p} OR COALESCE(d.name, r.department, '') ILIKE ${p})`);
     }
   }
 
@@ -456,7 +489,7 @@ function canViewInterview(user, interview) {
   if (!user || !interview) return false;
   if (isAdmin(user)) return true;
   if (Number(user.id) === Number(interview.recruiter_id)) return true;
-  if (canViewDepartment(user) && String(getDepartmentName(user)) === String(interview.recruiter_department || '')) return true;
+  if (canViewDepartment(user) && getManagedDepartmentNames(user).includes(String(interview.recruiter_department || ''))) return true;
   if (canManageInterviews(user) && (user.company_ids || []).includes(Number(interview.company_id))) return true;
   return false;
 }
@@ -566,6 +599,15 @@ async function initDb() {
       company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW(),
       PRIMARY KEY (user_id, company_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_department_access (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      department_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (user_id, department_id)
     )
   `);
 
@@ -787,13 +829,28 @@ app.delete('/api/companies/:id', requireAdmin, asyncHandler(async (req, res) => 
 }));
 
 app.get('/api/users', requireAdmin, asyncHandler(async (req, res) => {
+  const where = [];
+  const params = [];
+  const addParam = (value) => { params.push(value); return `$${params.length}`; };
+  if (req.query.role) where.push(`u.role = ${addParam(normalizeRole(req.query.role))}`);
+  if (req.query.account_type) where.push(`u.account_type = ${addParam(normalizeAccountType(req.query.account_type, req.query.role))}`);
+  if (req.query.department_id) {
+    const departmentId = Number(req.query.department_id);
+    if (departmentId) where.push(`u.department_id = ${addParam(departmentId)}`);
+  }
+  if (req.query.q) {
+    const p = addParam(`%${String(req.query.q).trim()}%`);
+    where.push(`(u.username ILIKE ${p} OR COALESCE(u.email, '') ILIKE ${p} OR u.full_name ILIKE ${p} OR COALESCE(d.name, u.department, '') ILIKE ${p})`);
+  }
   const { rows } = await pool.query(
     `SELECT u.id, u.username, u.email, u.full_name, u.role, u.account_type, u.department_id,
             COALESCE(d.name, u.department) AS department_name, u.department, u.is_active, u.created_at,
             u.employment_start_date, u.annual_leave_manual_adjustment
      FROM users u
      LEFT JOIN departments d ON d.id = u.department_id
-     ORDER BY u.created_at DESC, u.id DESC`
+     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+     ORDER BY u.created_at DESC, u.id DESC`,
+    params
   );
   const enriched = await enrichUsers(rows);
   res.json({ users: enriched.map(mapUser) });
@@ -811,6 +868,7 @@ app.post('/api/users', requireAdmin, asyncHandler(async (req, res) => {
   const employmentStartDate = req.body.employment_start_date ? String(req.body.employment_start_date) : null;
   const annualAdjustment = parseDecimal(req.body.annual_leave_manual_adjustment, 0);
   const companyIds = Array.isArray(req.body.company_ids) ? req.body.company_ids : String(req.body.company_ids || '').split(',').filter(Boolean);
+  const managedDepartmentIds = Array.isArray(req.body.managed_department_ids) ? req.body.managed_department_ids : String(req.body.managed_department_ids || '').split(',').filter(Boolean);
   if (!username || !fullName) return res.status(400).json({ error: 'Vui lòng nhập tên đăng nhập và họ tên.' });
   const hash = await bcrypt.hash(password, 10);
   const client = await pool.connect();
@@ -827,6 +885,10 @@ app.post('/api/users', requireAdmin, asyncHandler(async (req, res) => {
       for (const companyId of companyIds.map(Number).filter(Boolean)) {
         await client.query(`INSERT INTO user_company_access(user_id, company_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [inserted.rows[0].id, companyId]);
       }
+    }
+    await client.query('DELETE FROM user_department_access WHERE user_id = $1', [inserted.rows[0].id]);
+    for (const departmentIdItem of managedDepartmentIds.map(Number).filter(Boolean)) {
+      await client.query(`INSERT INTO user_department_access(user_id, department_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [inserted.rows[0].id, departmentIdItem]);
     }
     await client.query('COMMIT');
     const user = await getCurrentUser(inserted.rows[0].id);
@@ -851,6 +913,7 @@ app.put('/api/users/:id', requireAdmin, asyncHandler(async (req, res) => {
   const isActive = String(req.body.is_active).toLowerCase() !== 'false';
   const password = String(req.body.password || '').trim();
   const companyIds = Array.isArray(req.body.company_ids) ? req.body.company_ids : String(req.body.company_ids || '').split(',').filter(Boolean);
+  const managedDepartmentIds = Array.isArray(req.body.managed_department_ids) ? req.body.managed_department_ids : String(req.body.managed_department_ids || '').split(',').filter(Boolean);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -868,6 +931,10 @@ app.put('/api/users/:id', requireAdmin, asyncHandler(async (req, res) => {
       for (const companyId of companyIds.map(Number).filter(Boolean)) {
         await client.query(`INSERT INTO user_company_access(user_id, company_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [id, companyId]);
       }
+    }
+    await client.query('DELETE FROM user_department_access WHERE user_id = $1', [id]);
+    for (const departmentIdItem of managedDepartmentIds.map(Number).filter(Boolean)) {
+      await client.query(`INSERT INTO user_department_access(user_id, department_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [id, departmentIdItem]);
     }
     await client.query('COMMIT');
     const user = await getCurrentUser(id);
@@ -956,18 +1023,42 @@ app.post('/api/leave', requireAuth, leaveUpload.single('attachment'), asyncHandl
 app.get('/api/leaves', requireAuth, asyncHandler(async (req, res) => {
   const user = req.session.user;
   const view = String(req.query.view || 'mine');
-  let result;
+  const where = [];
+  const params = [];
+  const addParam = (value) => { params.push(value); return `$${params.length}`; };
+  const managedDepts = getManagedDepartmentNames(user);
+
   if (view === 'mine') {
-    result = await baseLeaveQuery(`WHERE lr.user_id = $1`, [user.id]);
+    where.push(`lr.user_id = ${addParam(user.id)}`);
   } else if (view === 'pending') {
-    result = await baseLeaveQuery(`WHERE lr.approver_id = $1 AND lr.status = 'pending'`, [user.id]);
+    where.push(`lr.approver_id = ${addParam(user.id)} AND lr.status = 'pending'`);
+  } else if (view === 'signed_by_me') {
+    where.push(`lr.approver_id = ${addParam(user.id)} AND lr.status IN ('approved','rejected')`);
+  } else if (view === 'team_signed') {
+    if (isAdmin(user)) {
+      where.push(`lr.status IN ('approved','rejected')`);
+    } else if (canViewDepartment(user) && managedDepts.length) {
+      where.push(`COALESCE(d.name, u.department, '') = ANY(${addParam(managedDepts)}::text[]) AND lr.status IN ('approved','rejected')`);
+    } else {
+      where.push(`lr.approver_id = ${addParam(user.id)} AND lr.status IN ('approved','rejected')`);
+    }
   } else if (view === 'all') {
-    if (isAdmin(user)) result = await baseLeaveQuery();
-    else if (canViewDepartment(user)) result = await baseLeaveQuery(`WHERE COALESCE(d.name, u.department) = $1`, [getDepartmentName(user)]);
-    else result = await baseLeaveQuery(`WHERE lr.user_id = $1`, [user.id]);
+    if (isAdmin(user)) {
+    } else if (canViewDepartment(user) && managedDepts.length) {
+      where.push(`COALESCE(d.name, u.department, '') = ANY(${addParam(managedDepts)}::text[])`);
+    } else {
+      where.push(`lr.user_id = ${addParam(user.id)}`);
+    }
   } else {
-    result = await baseLeaveQuery(`WHERE lr.user_id = $1`, [user.id]);
+    where.push(`lr.user_id = ${addParam(user.id)}`);
   }
+
+  if (req.query.status) where.push(`lr.status = ${addParam(String(req.query.status))}`);
+  if (req.query.q) {
+    const p = addParam(`%${String(req.query.q).trim()}%`);
+    where.push(`(COALESCE(u.full_name, '') ILIKE ${p} OR COALESCE(a.full_name, '') ILIKE ${p} OR COALESCE(u.username, '') ILIKE ${p} OR COALESCE(d.name, u.department, '') ILIKE ${p} OR COALESCE(lr.reason, '') ILIKE ${p})`);
+  }
+  const result = await baseLeaveQuery(where.length ? `WHERE ${where.join(' AND ')}` : '', params);
   res.json({ leaves: result.rows.map(mapLeaveRow) });
 }));
 
@@ -1192,7 +1283,6 @@ app.get('/api/interviews/export.xlsx', requireAuth, asyncHandler(async (req, res
 }));
 
 app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req, res) => {
-  if (!canManageInterviews(req.session.user)) return res.status(403).json({ error: 'Bạn không có quyền tải mẫu import.' });
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Mau import');
   sheet.columns = [
