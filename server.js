@@ -1157,6 +1157,51 @@ app.get('/api/interviews', requireAuth, asyncHandler(async (req, res) => {
   res.json({ interviews: rows.map(mapInterview) });
 }));
 
+app.get('/api/interviews/export.xlsx', requireAuth, asyncHandler(async (req, res) => {
+  const scope = String(req.query.scope || 'manage');
+  if (scope === 'manage' && !canManageInterviews(req.session.user)) return res.status(403).json({ error: 'Bạn không có quyền xuất Excel ở mục này.' });
+  if (scope === 'department' && !canViewDepartment(req.session.user)) return res.status(403).json({ error: 'Bạn không có quyền xuất Excel ở mục này.' });
+  const built = buildAccessibleWhere(req.session.user, scope, req.query);
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Ho so phong van');
+  sheet.columns = [
+    { header: 'ID', key: 'id', width: 8 },
+    { header: 'Ngày phỏng vấn', key: 'interview_date', width: 14 },
+    { header: 'Ca', key: 'interview_shift', width: 12 },
+    { header: 'Công ty', key: 'company_name', width: 24 },
+    { header: 'Người tạo', key: 'recruiter_name', width: 20 },
+    { header: 'Phòng ban', key: 'recruiter_department', width: 16 },
+    { header: 'Họ tên', key: 'full_name', width: 22 },
+    { header: 'Giới tính', key: 'gender', width: 10 },
+    { header: 'CCCD', key: 'cccd_number', width: 18 },
+    { header: 'Ngày sinh', key: 'birth_date', width: 14 },
+    { header: 'SĐT', key: 'phone', width: 14 },
+    { header: 'Quê quán', key: 'permanent_address', width: 30 },
+    { header: 'Ngày cấp CCCD', key: 'cccd_issue_date', width: 14 },
+    { header: 'Ngày hết hạn CCCD', key: 'cccd_expiry_date', width: 16 },
+    { header: 'Trạng thái', key: 'status', width: 14 },
+    { header: 'Ghi chú', key: 'result_note', width: 30 },
+  ];
+  if (!built.empty) {
+    const { rows } = await pool.query(
+      `SELECT i.id, i.interview_date, i.interview_shift, c.name AS company_name, r.full_name AS recruiter_name,
+              COALESCE(d.name, r.department) AS recruiter_department, i.full_name, i.gender, i.cccd_number, i.birth_date,
+              i.phone, i.permanent_address, i.cccd_issue_date, i.cccd_expiry_date, i.status, i.result_note
+       FROM interview_forms i
+       LEFT JOIN companies c ON c.id = i.company_id
+       LEFT JOIN users r ON r.id = i.recruiter_id
+       LEFT JOIN departments d ON d.id = r.department_id
+       ${built.whereSql}
+       ORDER BY i.interview_date DESC, i.created_at DESC, i.id DESC`,
+      built.params
+    );
+    rows.forEach((row) => sheet.addRow({ ...row, interview_shift: labelShift(row.interview_shift), gender: labelGender(row.gender), status: labelStatus(row.status) }));
+  }
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="ho-so-phong-van.xlsx"');
+  await workbook.xlsx.write(res); res.end();
+}));
+
 app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req, res) => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Mau import');
@@ -1267,51 +1312,6 @@ app.delete('/api/interviews/:id', requireAuth, asyncHandler(async (req, res) => 
   if (!canDelete) return res.status(403).json({ error: 'Bạn không có quyền xóa hồ sơ này.' });
   await pool.query(`DELETE FROM interview_forms WHERE id = $1`, [id]);
   res.json({ message: 'Đã xóa hồ sơ.' });
-}));
-
-app.get('/api/interviews/export.xlsx', requireAuth, asyncHandler(async (req, res) => {
-  const scope = String(req.query.scope || 'manage');
-  if (scope === 'manage' && !canManageInterviews(req.session.user)) return res.status(403).json({ error: 'Bạn không có quyền xuất Excel ở mục này.' });
-  if (scope === 'department' && !canViewDepartment(req.session.user)) return res.status(403).json({ error: 'Bạn không có quyền xuất Excel ở mục này.' });
-  const built = buildAccessibleWhere(req.session.user, scope, req.query);
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Ho so phong van');
-  sheet.columns = [
-    { header: 'ID', key: 'id', width: 8 },
-    { header: 'Ngày phỏng vấn', key: 'interview_date', width: 14 },
-    { header: 'Ca', key: 'interview_shift', width: 12 },
-    { header: 'Công ty', key: 'company_name', width: 24 },
-    { header: 'Người tạo', key: 'recruiter_name', width: 20 },
-    { header: 'Phòng ban', key: 'recruiter_department', width: 16 },
-    { header: 'Họ tên', key: 'full_name', width: 22 },
-    { header: 'Giới tính', key: 'gender', width: 10 },
-    { header: 'CCCD', key: 'cccd_number', width: 18 },
-    { header: 'Ngày sinh', key: 'birth_date', width: 14 },
-    { header: 'SĐT', key: 'phone', width: 14 },
-    { header: 'Quê quán', key: 'permanent_address', width: 30 },
-    { header: 'Ngày cấp CCCD', key: 'cccd_issue_date', width: 14 },
-    { header: 'Ngày hết hạn CCCD', key: 'cccd_expiry_date', width: 16 },
-    { header: 'Trạng thái', key: 'status', width: 14 },
-    { header: 'Ghi chú', key: 'result_note', width: 30 },
-  ];
-  if (!built.empty) {
-    const { rows } = await pool.query(
-      `SELECT i.id, i.interview_date, i.interview_shift, c.name AS company_name, r.full_name AS recruiter_name,
-              COALESCE(d.name, r.department) AS recruiter_department, i.full_name, i.gender, i.cccd_number, i.birth_date,
-              i.phone, i.permanent_address, i.cccd_issue_date, i.cccd_expiry_date, i.status, i.result_note
-       FROM interview_forms i
-       LEFT JOIN companies c ON c.id = i.company_id
-       LEFT JOIN users r ON r.id = i.recruiter_id
-       LEFT JOIN departments d ON d.id = r.department_id
-       ${built.whereSql}
-       ORDER BY i.interview_date DESC, i.created_at DESC, i.id DESC`,
-      built.params
-    );
-    rows.forEach((row) => sheet.addRow({ ...row, interview_shift: labelShift(row.interview_shift), gender: labelGender(row.gender), status: labelStatus(row.status) }));
-  }
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="ho-so-phong-van.xlsx"');
-  await workbook.xlsx.write(res); res.end();
 }));
 
 app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, excelUpload.single('file'), asyncHandler(async (req, res) => {
