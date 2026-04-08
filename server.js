@@ -1157,8 +1157,40 @@ app.get('/api/interviews', requireAuth, asyncHandler(async (req, res) => {
   res.json({ interviews: rows.map(mapInterview) });
 }));
 
-app.get('/api/interviews/:id', requireAuth, asyncHandler(async (req, res) => {
-  const interview = await getInterviewById(Number(req.params.id));
+app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req, res) => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Mau import');
+  sheet.columns = [
+    { header: 'Ngày phỏng vấn', key: 'interview_date', width: 16 },
+    { header: 'Ca phỏng vấn', key: 'interview_shift', width: 14 },
+    { header: 'Công ty', key: 'company_name', width: 24 },
+    { header: 'Họ và tên', key: 'full_name', width: 22 },
+    { header: 'Giới tính', key: 'gender', width: 12 },
+    { header: 'Số CCCD', key: 'cccd_number', width: 18 },
+    { header: 'Ngày sinh', key: 'birth_date', width: 16 },
+    { header: 'Số điện thoại', key: 'phone', width: 16 },
+    { header: 'Quê quán thường trú', key: 'permanent_address', width: 28 },
+    { header: 'Ngày cấp CCCD', key: 'cccd_issue_date', width: 16 },
+    { header: 'Ngày hết hạn CCCD', key: 'cccd_expiry_date', width: 16 },
+    { header: 'Ghi chú', key: 'note', width: 24 },
+  ];
+  sheet.addRow({
+    interview_date: '2026-04-10', interview_shift: 'Ca sáng', company_name: 'Tên công ty', full_name: 'Nguyễn Văn A', gender: 'Nam', cccd_number: '123456789012',
+    birth_date: '2000-01-01', phone: '0912345678', permanent_address: 'Bắc Giang', cccd_issue_date: '2020-01-01', cccd_expiry_date: '', note: ''
+  });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="mau-import-ho-so.xlsx"');
+  await workbook.xlsx.write(res); res.end();
+}));
+
+app.get('/api/interviews/:id', requireAuth, asyncHandler(async (req, res, next) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isFinite(id)) {
+    return next();
+  }
+
+  const interview = await getInterviewById(id);
   if (!interview) return res.status(404).json({ error: 'Không tìm thấy hồ sơ.' });
   if (!canViewInterview(req.session.user, interview)) return res.status(403).json({ error: 'Bạn không có quyền xem hồ sơ này.' });
   res.json({ interview: mapInterview(interview) });
@@ -1279,32 +1311,6 @@ app.get('/api/interviews/export.xlsx', requireAuth, asyncHandler(async (req, res
   }
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename="ho-so-phong-van.xlsx"');
-  await workbook.xlsx.write(res); res.end();
-}));
-
-app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req, res) => {
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Mau import');
-  sheet.columns = [
-    { header: 'Ngày phỏng vấn', key: 'interview_date', width: 16 },
-    { header: 'Ca phỏng vấn', key: 'interview_shift', width: 14 },
-    { header: 'Công ty', key: 'company_name', width: 24 },
-    { header: 'Họ và tên', key: 'full_name', width: 22 },
-    { header: 'Giới tính', key: 'gender', width: 12 },
-    { header: 'Số CCCD', key: 'cccd_number', width: 18 },
-    { header: 'Ngày sinh', key: 'birth_date', width: 16 },
-    { header: 'Số điện thoại', key: 'phone', width: 16 },
-    { header: 'Quê quán thường trú', key: 'permanent_address', width: 28 },
-    { header: 'Ngày cấp CCCD', key: 'cccd_issue_date', width: 16 },
-    { header: 'Ngày hết hạn CCCD', key: 'cccd_expiry_date', width: 16 },
-    { header: 'Ghi chú', key: 'note', width: 24 },
-  ];
-  sheet.addRow({
-    interview_date: '2026-04-10', interview_shift: 'Ca sáng', company_name: 'Tên công ty', full_name: 'Nguyễn Văn A', gender: 'Nam', cccd_number: '123456789012',
-    birth_date: '2000-01-01', phone: '0912345678', permanent_address: 'Bắc Giang', cccd_issue_date: '2020-01-01', cccd_expiry_date: '', note: ''
-  });
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="mau-import-ho-so.xlsx"');
   await workbook.xlsx.write(res); res.end();
 }));
 
