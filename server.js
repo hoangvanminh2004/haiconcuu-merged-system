@@ -744,6 +744,7 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 
   const user = await getUserByLogin(login);
   if (!user || user.is_active === false) return res.status(400).json({ error: 'Tài khoản không tồn tại hoặc đã bị khóa.' });
+
   let ok = false;
   if (user.password_hash) ok = await bcrypt.compare(password, user.password_hash).catch(() => false);
   if (!ok && user.password) ok = String(user.password) === password;
@@ -751,7 +752,14 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 
   const current = await getCurrentUser(user.id);
   setSessionUser(req, current);
-  res.json({ message: 'Đăng nhập thành công.', user: current });
+
+  req.session.save((err) => {
+    if (err) {
+      console.error('Lỗi lưu session đăng nhập:', err);
+      return res.status(500).json({ error: 'Không lưu được phiên đăng nhập.' });
+    }
+    res.json({ message: 'Đăng nhập thành công.', user: current });
+  });
 }));
 
 app.post('/api/logout', requireAuth, (req, res) => {
