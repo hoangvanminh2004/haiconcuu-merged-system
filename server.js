@@ -128,6 +128,77 @@ function normalizeComparableValue(value) {
   return String(value).trim();
 }
 
+function formatDateToISO(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function excelSerialToISO(serial) {
+  const n = Number(serial);
+  if (!Number.isFinite(n)) return '';
+
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+  const ms = excelEpoch.getTime() + Math.round(n * 86400 * 1000);
+  const d = new Date(ms);
+
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeExcelDate(cell) {
+  const raw = cell?.value;
+
+  if (raw instanceof Date) return formatDateToISO(raw);
+
+  if (typeof raw === 'number') {
+    return excelSerialToISO(raw);
+  }
+
+  if (raw && typeof raw === 'object') {
+    if (raw.result instanceof Date) return formatDateToISO(raw.result);
+    if (typeof raw.result === 'number') return excelSerialToISO(raw.result);
+    if (raw.text && typeof raw.text === 'string') {
+      const txt = raw.text.trim();
+      if (/^\d{5,}$/.test(txt)) return excelSerialToISO(Number(txt));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(txt)) return txt;
+
+      const m = txt.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+      if (m) {
+        const day = String(Number(m[1])).padStart(2, '0');
+        const month = String(Number(m[2])).padStart(2, '0');
+        const year = m[3];
+        return `${year}-${month}-${day}`;
+      }
+    }
+  }
+
+  const text = String(cell?.text ?? raw ?? '').trim();
+  if (!text) return '';
+
+  if (/^\d{5,}$/.test(text)) return excelSerialToISO(Number(text));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const m = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (m) {
+    const day = String(Number(m[1])).padStart(2, '0');
+    const month = String(Number(m[2])).padStart(2, '0');
+    const year = m[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return formatDateToISO(parsed);
+
+  return text;
+}
+
 function buildTimeValue(hour, minute) {
   if (hour === null || hour === undefined || minute === null || minute === undefined) return null;
   if (hour === '' || minute === '') return null;
@@ -1955,21 +2026,21 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
   for (let i = 2; i <= sheet.rowCount; i++) {
     const row = sheet.getRow(i);
 
-    const interviewDate = String(row.getCell(1).text || '').trim();
-    const shiftText = safeLower(row.getCell(2).text || '');
-    const companyName = String(row.getCell(3).text || '').trim();
-    const fullName = String(row.getCell(4).text || '').trim();
-    const genderText = safeLower(row.getCell(5).text || '');
-    const cccdNumber = normalizeDigits(row.getCell(6).text || '');
-    const birthDate = String(row.getCell(7).text || '').trim();
-    const phone = normalizeDigits(row.getCell(8).text || '');
-    const permanentAddress = String(row.getCell(9).text || '').trim();
-    const cccdIssueDate = String(row.getCell(10).text || '').trim();
-    const cccdExpiryDate = String(row.getCell(11).text || '').trim() || null;
-    const recruiterName = String(row.getCell(12).text || '').trim();
-    const departmentName = String(row.getCell(13).text || '').trim();
-    const statusText = safeLower(row.getCell(14).text || '');
-    const note = String(row.getCell(15).text || '').trim() || null;
+    const interviewDate = normalizeExcelDate(row.getCell(1));
+    const shiftText = safeLower(row.getCell(2).text || row.getCell(2).value || '');
+    const companyName = String(row.getCell(3).text || row.getCell(3).value || '').trim();
+    const fullName = String(row.getCell(4).text || row.getCell(4).value || '').trim();
+    const genderText = safeLower(row.getCell(5).text || row.getCell(5).value || '');
+    const cccdNumber = normalizeDigits(row.getCell(6).text || row.getCell(6).value || '');
+    const birthDate = normalizeExcelDate(row.getCell(7));
+    const phone = normalizeDigits(row.getCell(8).text || row.getCell(8).value || '');
+    const permanentAddress = String(row.getCell(9).text || row.getCell(9).value || '').trim();
+    const cccdIssueDate = normalizeExcelDate(row.getCell(10));
+    const cccdExpiryDate = normalizeExcelDate(row.getCell(11)) || null;
+    const recruiterName = String(row.getCell(12).text || row.getCell(12).value || '').trim();
+    const departmentName = String(row.getCell(13).text || row.getCell(13).value || '').trim();
+    const statusText = safeLower(row.getCell(14).text || row.getCell(14).value || '');
+    const note = String(row.getCell(15).text || row.getCell(15).value || '').trim() || null;
 
     const interviewShift = shiftText.includes('chiều') ? 'AFTERNOON' : 'MORNING';
     const gender = genderText.includes('nữ') ? 'FEMALE' : 'MALE';
