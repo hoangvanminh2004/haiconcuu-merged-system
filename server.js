@@ -474,17 +474,6 @@ async function getAnnualLeaveBalance(userId, db = pool) {
     [userId]
   );
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const jan1 = new Date(currentYear, 0, 1);
-  let start = user?.employment_start_date ? new Date(user.employment_start_date) : jan1;
-  if (Number.isNaN(start.getTime())) start = jan1;
-  if (start < jan1) start = jan1;
-
-  let accrued = 0;
-  if (start <= now) accrued = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
-  accrued = toFixedNumber(accrued + Number(user?.annual_leave_manual_adjustment || 0));
-
   const usedResult = await db.query(
     `SELECT COALESCE(SUM(annual_leave_days_used), 0) AS used_days
      FROM leave_requests
@@ -496,7 +485,43 @@ async function getAnnualLeaveBalance(userId, db = pool) {
   );
 
   const used = toFixedNumber(usedResult.rows[0]?.used_days || 0);
-  return { accrued_days: accrued, used_days: used, remaining_days: toFixedNumber(accrued - used) };
+  const manual = toFixedNumber(user?.annual_leave_manual_adjustment || 0);
+
+  if (!user?.employment_start_date) {
+    return {
+      accrued_days: manual,
+      used_days: used,
+      remaining_days: toFixedNumber(manual - used)
+    };
+  }
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const jan1 = new Date(currentYear, 0, 1);
+
+  let start = new Date(user.employment_start_date);
+  if (Number.isNaN(start.getTime())) {
+    return {
+      accrued_days: manual,
+      used_days: used,
+      remaining_days: toFixedNumber(manual - used)
+    };
+  }
+
+  if (start < jan1) start = jan1;
+
+  let accrued = 0;
+  if (start <= now) {
+    accrued = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+  }
+
+  accrued = toFixedNumber(accrued + manual);
+
+  return {
+    accrued_days: accrued,
+    used_days: used,
+    remaining_days: toFixedNumber(accrued - used)
+  };
 }
 
 function buildAccessibleWhere(user, scope, filters = {}) {
@@ -900,7 +925,9 @@ app.post('/api/departments', requireAdmin, asyncHandler(async (req, res) => {
   if (!name) return res.status(400).json({ error: 'Vui lòng nhập tên phòng ban.' });
 
   const existing = await queryOne(pool, `SELECT id, name FROM departments WHERE LOWER(name) = LOWER($1) LIMIT 1`, [name]);
-  if (existing) return res.json({ message: 'Phòng ban đã tồn tại.', department: existing });
+  if (existing) {
+    return res.json({ message: 'Phòng ban đã tồn tại.', department: existing });
+  }
 
   const { rows } = await pool.query(`INSERT INTO departments(name) VALUES($1) RETURNING id, name`, [name]);
   res.json({ message: 'Đã tạo phòng ban.', department: rows[0] });
@@ -911,8 +938,12 @@ app.put('/api/departments/:id', requireAdmin, asyncHandler(async (req, res) => {
   const name = String(req.body.name || '').trim();
   if (!id || !name) return res.status(400).json({ error: 'Dữ liệu không hợp lệ.' });
 
+  const duplicate = await queryOne(pool, `SELECT id FROM departments WHERE LOWER(name) = LOWER($1) AND id <> $2 LIMIT 1`, [name, id]);
+  if (duplicate) return res.status(400).json({ error: 'Tên phòng ban đã tồn tại.' });
+
   await pool.query(`UPDATE departments SET name = $2 WHERE id = $1`, [id, name]);
   await pool.query(`UPDATE users SET department = $2 WHERE department_id = $1`, [id, name]);
+
   res.json({ message: 'Đã cập nhật phòng ban.' });
 }));
 
@@ -1549,6 +1580,9 @@ app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req,
     { header: 'Quê quán thường trú', key: 'permanent_address', width: 28 },
     { header: 'Ngày cấp CCCD', key: 'cccd_issue_date', width: 16 },
     { header: 'Ngày hết hạn CCCD', key: 'cccd_expiry_date', width: 16 },
+    { header: 'Người tạo hồ sơ', key: 'recruiter_name', width: 22 },
+    { header: 'Phòng ban', key: 'department_name', width: 18 },
+    { header: 'Trạng thái', key: 'status', width: 14 },
     { header: 'Ghi chú', key: 'note', width: 24 },
   ];
 
@@ -1564,7 +1598,10 @@ app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req,
     permanent_address: 'Bắc Giang',
     cccd_issue_date: '2020-01-01',
     cccd_expiry_date: '',
-    note: ''
+    recruiter_name: 'Tên người tạo',
+    department_name: 'Phòng tuyển dụng',
+    status: 'Đỗ',
+    note: 'Ghi chú nếu có'
   });
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1712,6 +1749,7 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
 
   for (let i = 2; i <= sheet.rowCount; i++) {
     const row = sheet.getRow(i);
+
     const interviewDate = String(row.getCell(1).text || '').trim();
     const shiftText = safeLower(row.getCell(2).text || '');
     const companyName = String(row.getCell(3).text || '').trim();
@@ -1723,6 +1761,10 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
     const permanentAddress = String(row.getCell(9).text || '').trim();
     const cccdIssueDate = String(row.getCell(10).text || '').trim();
     const cccdExpiryDate = String(row.getCell(11).text || '').trim() || null;
+    const recruiterName = String(row.getCell(12).text || '').trim();
+    const departmentName = String(row.getCell(13).text || '').trim();
+    const statusText = safeLower(row.getCell(14).text || '');
+    const note = String(row.getCell(15).text || '').trim() || null;
 
     let message = 'Thành công';
 
@@ -1730,6 +1772,13 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
       const interviewShift = shiftText.includes('chiều') ? 'AFTERNOON' : 'MORNING';
       const gender = genderText.includes('nữ') ? 'FEMALE' : 'MALE';
       const companyId = companyMap.get(safeLower(companyName));
+
+      let status = 'PENDING';
+      if (statusText.includes('đỗ') || statusText.includes('do') || statusText.includes('passed') || statusText === 'pass') {
+        status = 'PASSED';
+      } else if (statusText.includes('trượt') || statusText.includes('truot') || statusText.includes('failed') || statusText === 'fail') {
+        status = 'FAILED';
+      }
 
       if (!companyId) throw new Error('Công ty không tồn tại trong hệ thống');
       if (allowedCompanyIds && !allowedCompanyIds.includes(Number(companyId))) throw new Error('Bạn không có quyền import vào công ty này');
@@ -1743,16 +1792,70 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
 
       if (cccdExpiryDate && !isValidDateInput(cccdExpiryDate)) throw new Error('Ngày hết hạn CCCD không hợp lệ');
 
-      const dup = await queryOne(pool, `SELECT id FROM interview_forms WHERE cccd_number = $1 AND company_id = $2 AND interview_date = $3 LIMIT 1`, [cccdNumber, companyId, interviewDate]);
+      const dup = await queryOne(pool,
+        `SELECT id FROM interview_forms WHERE cccd_number = $1 AND company_id = $2 AND interview_date = $3 LIMIT 1`,
+        [cccdNumber, companyId, interviewDate]
+      );
       if (dup) throw new Error('Đã tồn tại hồ sơ trùng CCCD + công ty + ngày phỏng vấn');
 
+      let recruiterId = req.session.user.id;
+
+      if (isAdmin(req.session.user) && recruiterName) {
+        const matchedUser = await queryOne(pool,
+          `SELECT id
+           FROM users
+           WHERE LOWER(COALESCE(full_name, '')) = LOWER($1)
+              OR LOWER(COALESCE(username, '')) = LOWER($1)
+              OR LOWER(COALESCE(email, '')) = LOWER($1)
+           LIMIT 1`,
+          [recruiterName]
+        );
+        if (matchedUser) recruiterId = matchedUser.id;
+      }
+
+      const hasResult = status !== 'PENDING';
+
       const inserted = await pool.query(
-        `INSERT INTO interview_forms(interview_date, interview_shift, company_id, recruiter_id, full_name, cccd_number, birth_date, permanent_address, cccd_issue_date, cccd_expiry_date, phone, gender)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
-        [interviewDate, interviewShift, companyId, req.session.user.id, fullName, cccdNumber, birthDate, permanentAddress, cccdIssueDate, cccdExpiryDate, phone, gender]
+        `INSERT INTO interview_forms(
+          interview_date, interview_shift, company_id, recruiter_id,
+          full_name, cccd_number, birth_date, permanent_address,
+          cccd_issue_date, cccd_expiry_date, phone, gender,
+          status, result_note, result_updated_by, result_updated_at
+        )
+        VALUES(
+          $1,$2,$3,$4,
+          $5,$6,$7,$8,
+          $9,$10,$11,$12,
+          $13,$14,$15,$16
+        ) RETURNING id`,
+        [
+          interviewDate,
+          interviewShift,
+          companyId,
+          recruiterId,
+          fullName,
+          cccdNumber,
+          birthDate,
+          permanentAddress,
+          cccdIssueDate,
+          cccdExpiryDate,
+          phone,
+          gender,
+          status,
+          note,
+          hasResult ? req.session.user.id : null,
+          hasResult ? new Date() : null
+        ]
       );
 
-      await addInterviewLog({ formId: inserted.rows[0].id, action: 'IMPORT_EXCEL', newStatus: 'PENDING', note: 'Import Excel', userId: req.session.user.id });
+      await addInterviewLog({
+        formId: inserted.rows[0].id,
+        action: 'IMPORT_EXCEL',
+        newStatus: status,
+        note: `Import Excel${departmentName ? ` | Phòng ban file: ${departmentName}` : ''}`,
+        userId: req.session.user.id
+      });
+
       success += 1;
     } catch (error) {
       message = error.message;
