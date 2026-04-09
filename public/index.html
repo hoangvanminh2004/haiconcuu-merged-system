@@ -176,7 +176,7 @@
         <div class="card">
           <h2 style="margin-top:0">Tạo hồ sơ phỏng vấn</h2>
           <form id="interviewForm" class="grid-4" enctype="multipart/form-data">
-  <input type="hidden" name="id">
+            <input type="hidden" name="id">
             <div class="field"><label>Ngày phỏng vấn</label><input type="date" name="interview_date" required></div>
             <div class="field"><label>Ca phỏng vấn</label><select name="interview_shift" required><option value="MORNING">Ca sáng</option><option value="AFTERNOON">Ca chiều</option></select></div>
             <div class="field"><label>Công ty</label><select name="company_id" id="companySelectCreate" required></select></div>
@@ -346,98 +346,70 @@
   applyPermissions();
 }
     async function boot(){
-  try{
-    const meData = await api('/api/me');
-    state.me = meData.user;
-    setLoggedIn(true);
-
-    await loadConfig();
-    renderUserBox();
-
-    try{ await loadStats(); }catch(e){ console.error('loadStats lỗi:', e); }
-    try{ await loadApprovers(); }catch(e){ console.error('loadApprovers lỗi:', e); }
-    try{ await loadLeaves(); }catch(e){ console.error('loadLeaves lỗi:', e); }
-    try{ await loadInterviews(); }catch(e){ console.error('loadInterviews lỗi:', e); }
-
-    if(canManageUI()){
-      try{ await loadManageInterviews(); }catch(e){ console.error('loadManageInterviews lỗi:', e); }
+      try{ const meData=await api('/api/me'); state.me = meData.user; setLoggedIn(true); await loadConfig(); renderUserBox(); await Promise.all([loadStats(),loadApprovers(),loadLeaves(),loadInterviews()]); if(canManageUI()) await loadManageInterviews(); if(state.me.role==='ADMIN') await loadUsers(); }catch{ setLoggedIn(false); }
     }
-
-    if(state.me.role === 'ADMIN'){
-      try{ await loadUsers(); }catch(e){ console.error('loadUsers lỗi:', e); }
-    }
-  }catch(e){
-    console.error('boot lỗi:', e);
-    setLoggedIn(false);
-  }
-}
-    
     async function loadConfig(){ const data=await api('/api/app-config'); state.me=data.me; state.companies=data.companies; state.departments=data.departments; fillCompanyOptions(); fillDepartmentOptions(); }
     async function loadStats(){ const data = await api('/api/stats'); $('#sLeaveTotal').textContent = data.leave.total; $('#sLeavePending').textContent = data.leave.pending; $('#sLeaveApproved').textContent = data.leave.approved; $('#sLeaveRejected').textContent = data.leave.rejected; $('#sInterviewMine').textContent = data.interviews.mine.total; $('#sInterviewManage').textContent = data.interviews.manage.total; $('#leaveAccrued').textContent = data.annual_leave_balance.accrued_days; $('#leaveUsed').textContent = data.annual_leave_balance.used_days; $('#leaveRemaining').textContent = data.annual_leave_balance.remaining_days; }
     async function loadApprovers(){ if(!state.me || state.me.role==='ADMIN'){ $('#approverSelect').innerHTML='<option value="">Admin không cần chọn</option>'; return; } const data=await api('/api/approvers'); const arr=data.approvers||[]; $('#approverSelect').innerHTML = arr.length?arr.map(a=>`<option value="${a.id}">${esc(a.full_name)} - ${esc(a.role_label)}${a.department_name?` (${esc(a.department_name)})`:''}</option>`).join(''):'<option value="">Không có người ký phù hợp</option>'; }
     function leaveActions(item){ if(item.status==='pending' && Number(item.approver_id)===Number(state.me.id)) return `<div class="actions"><button class="btn btn-success small approveLeave" data-id="${item.id}">Duyệt</button><button class="btn btn-danger small rejectLeave" data-id="${item.id}">Từ chối</button></div>`; return ''; }
     async function loadLeaves(){ const q = new URLSearchParams(); q.set('view', $('#leaveViewSelect').value); const fd = new FormData($('#leaveFilterForm')); for(const [k,v] of fd.entries()) if(v) q.set(k,v); state.leaveFilters = Object.fromEntries(q.entries()); const data = await api('/api/leaves?'+q.toString()); $('#leaveBody').innerHTML = (data.leaves||[]).map(item=>`<tr><td>${item.id}</td><td>${esc(item.requester_name)}</td><td>${esc(item.department_name||'')}</td><td>${esc(item.approver_name||'')}</td><td>${esc(item.leave_type)}</td><td>${esc(item.from_date||'')}</td><td>${esc(item.to_date||'')}</td><td>${esc(item.from_time||'')} - ${esc(item.to_time||'')}</td><td>${esc(item.annual_leave_days_used)}</td><td>${badgeLeave(item.status)}</td><td>${esc(item.reason)}${item.reject_reason?`<div class="small" style="color:#b91c1c">Lý do từ chối: ${esc(item.reject_reason)}</div>`:''}</td><td>${item.file_name?`<a class="link-btn" href="/api/leaves/${item.id}/download" target="_blank">${esc(item.file_name)}</a>`:''}</td><td>${leaveActions(item)}</td></tr>`).join('') || '<tr><td colspan="13" class="muted">Chưa có dữ liệu</td></tr>'; }
-    async function loadInterviews(){ const scope = $('#interviewScopeSelect').value; const fd = new FormData($('#interviewFilterForm')); const q = new URLSearchParams(); q.set('scope', scope); for(const [k,v] of fd.entries()) if(v) q.set(k,v); state.interviewFilters = Object.fromEntries(q.entries()); const data = await api('/api/interviews?'+q.toString()); $('#interviewBody').innerhtml = (data.interviews||[]).map(i=>`
-  <tr>
-    <td>${i.id}</td>
-    <td>${esc(i.interview_date||'')}</td>
-    <td>${esc(i.company_name||'')}</td>
-    <td>${esc(i.recruiter_name||'')}</td>
-    <td>${esc(i.recruiter_department||'')}</td>
-    <td>${esc(i.full_name)}</td>
-    <td>${esc(i.cccd_number)}</td>
-    <td>${esc(i.phone)}</td>
-    <td>${badgeInterview(i.status)}</td>
-    <td>${esc(i.result_note||'')}</td>
-    <td>${manageRowActions(i)}</td>
-  </tr>
-`).join('') || '<tr><td colspan="11" class="muted">Chưa có dữ liệu</td></tr>'; }
-    function manageRowActions(i){ return `<div class="actions"><button class="btn btn-success small setResultBtn" data-id="${i.id}" data-status="PASSED">Đỗ</button><button class="btn btn-danger small setResultBtn" data-id="${i.id}" data-status="FAILED">Trượt</button><button class="btn btn-light small editInterviewBtn" data-id="${i.id}">Sửa</button><button class="btn btn-danger small deleteInterviewBtn" data-id="${i.id}">Xóa</button></div>`; }
-    async function loadManageInterviews(){
-      const fd = new FormData($('#manageFilterForm')); const q = new URLSearchParams(); q.set('scope','manage'); for(const [k,v] of fd.entries()) if(v) q.set(k,v); state.manageFilters = Object.fromEntries(q.entries());
-      let html='';
-      try{ const data = await api('/api/interviews?'+q.toString()); html = (data.interviews||[]).map(i=>`<tr><td>${i.id}</td><td>${esc(i.interview_date||'')}</td><td>${esc(i.company_name||'')}</td><td>${esc(i.recruiter_name||'')}</td><td>${esc(i.full_name)}</td><td>${esc(i.cccd_number)}</td><td>${esc(i.phone)}</td><td>${badgeInterview(i.status)}</td><td>${esc(i.result_note||'')}</td><td>${manageRowActions(i)}</td></tr>`).join('') || '<tr><td colspan="10" class="muted">Chưa có dữ liệu</td></tr>'; }catch(e){ html = `<tr><td colspan="10" class="muted">${esc(e.message)}</td></tr>`; }
-      $('#manageBody').innerHTML = html;
+    async function loadInterviews(){
+      const scope = $('#interviewScopeSelect').value;
+      const fd = new FormData($('#interviewFilterForm'));
+      const q = new URLSearchParams();
+      q.set('scope', scope);
+      for (const [k, v] of fd.entries()) if (v) q.set(k, v);
+      state.interviewFilters = Object.fromEntries(q.entries());
+      const data = await api('/api/interviews?' + q.toString());
+
+      $('#interviewBody').innerHTML = (data.interviews || []).map(i => `
+        <tr>
+          <td>${i.id}</td>
+          <td>${esc(i.interview_date || '')}</td>
+          <td>${esc(i.interview_shift_label || '')}</td>
+          <td>${esc(i.company_name || '')}</td>
+          <td>${esc(i.recruiter_name || '')}</td>
+          <td>${esc(i.recruiter_department || '')}</td>
+          <td>${esc(i.full_name || '')}</td>
+          <td>${esc(i.cccd_number || '')}</td>
+          <td>${esc(i.phone || '')}</td>
+          <td>${badgeInterview(i.status)}</td>
+          <td>${esc(i.result_note || '')}</td>
+          <td><a class="link-btn" href="${i.front_image_url}" target="_blank">Mặt trước</a> / <a class="link-btn" href="${i.back_image_url}" target="_blank">Mặt sau</a></td>
+        </tr>
+      `).join('') || '<tr><td colspan="12" class="muted">Chưa có dữ liệu</td></tr>';
     }
     async function loadUsers(){
-  try{
-    const fd = new FormData($('#userFilterForm'));
-    const q = new URLSearchParams();
-    for (const [k, v] of fd.entries()) {
-      if (v) q.set(k, v);
-    }
+      try{
+        const fd = new FormData($('#userFilterForm'));
+        const q = new URLSearchParams();
+        for (const [k, v] of fd.entries()) if (v) q.set(k, v);
 
-    const data = await api('/api/users' + (q.toString() ? `?${q.toString()}` : ''));
-    state.users = data.users || [];
+        const data = await api('/api/users' + (q.toString() ? `?${q.toString()}` : ''));
+        state.users = data.users || [];
 
-    $('#userBody').innerHTML = state.users.map(u=>`
-      <tr>
-        <td>${u.id}</td>
-        <td>${esc(u.username)}</td>
-        <td>${esc(u.full_name)}</td>
-        <td>${esc(u.role_label)}</td>
-        <td>${esc(u.account_type_label)}</td>
-        <td>${esc(u.department_name || '')}</td>
-        <td>${esc((u.managed_department_names || []).join(', '))}</td>
-        <td>${esc((u.company_names || []).join(', '))}</td>
-        <td>${esc(u.annual_leave_manual_adjustment)}</td>
-        <td>
-          <div class="actions">
-            <button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button>
-            <button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button>
-          </div>
-        </td>
-      </tr>
-    `).join('') || '<tr><td colspan="10" class="muted">Không có dữ liệu</td></tr>';
-  }catch{
-    $('#panel-admin-users .table-wrap').classList.add('hidden');
-  }
-}
-    async function loadCompaniesAndDepartmentsTables(){
-      const companies = (await api('/api/companies')).companies || []; state.companies = companies; fillCompanyOptions();
-      $('#companyBody').innerHTML = companies.map(c=>`<tr><td>${c.id}</td><td>${esc(c.name)}</td><td>${esc(c.code||'')}</td><td><div class="actions"><button class="btn btn-light small editCompanyBtn" data-id="${c.id}">Sửa</button><button class="btn btn-danger small deleteCompanyBtn" data-id="${c.id}">Xóa</button></div></td></tr>`).join('') || '<tr><td colspan="4" class="muted">Chưa có công ty</td></tr>';
-      const depts = (await api('/api/departments')).departments || []; state.departments = depts; fillDepartmentOptions();
-      $('#departmentBody').innerHTML = depts.map(d=>`<tr><td>${d.id}</td><td>${esc(d.name)}</td><td><div class="actions"><button class="btn btn-light small editDepartmentBtn" data-id="${d.id}">Sửa</button><button class="btn btn-danger small deleteDepartmentBtn" data-id="${d.id}">Xóa</button></div></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Chưa có phòng ban</td></tr>';
+        $('#userBody').innerHTML = state.users.map(u=>`
+          <tr>
+            <td>${u.id}</td>
+            <td>${esc(u.username)}</td>
+            <td>${esc(u.full_name)}</td>
+            <td>${esc(u.role_label)}</td>
+            <td>${esc(u.account_type_label)}</td>
+            <td>${esc(u.department_name || '')}</td>
+            <td>${esc((u.managed_department_names || []).join(', '))}</td>
+            <td>${esc((u.company_names || []).join(', '))}</td>
+            <td>${esc(u.annual_leave_manual_adjustment)}</td>
+            <td>
+              <div class="actions">
+                <button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button>
+                <button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="10" class="muted">Không có dữ liệu</td></tr>';
+      }catch{
+        $('#panel-admin-users .table-wrap').classList.add('hidden');
+      }
     }
     function selectedMultiValues(sel){ return Array.from(sel.selectedOptions).map(o=>o.value); }
 
@@ -455,35 +427,35 @@
     });
 
     $('#interviewForm').addEventListener('submit', async(e)=>{
-  e.preventDefault();
+      e.preventDefault();
 
-  const form = e.target;
-  const hiddenId = form.querySelector('[name=id]').value;
-  const fd = new FormData(form);
+      const form = e.target;
+      const hiddenId = form.querySelector('[name=id]').value;
+      const fd = new FormData(form);
 
-  const url = hiddenId ? `/api/interviews/${hiddenId}` : '/api/interviews';
-  const method = hiddenId ? 'PUT' : 'POST';
+      const url = hiddenId ? `/api/interviews/${hiddenId}` : '/api/interviews';
+      const method = hiddenId ? 'PUT' : 'POST';
 
-  try{
-    const r = await fetch(url, { method, body: fd });
-    const data = await r.json();
-    if(!r.ok) throw new Error(data.error || 'Lỗi');
+      try{
+        const r = await fetch(url, { method, body: fd });
+        const data = await r.json();
+        if(!r.ok) throw new Error(data.error || 'Lỗi');
 
-    $('#interviewMsg').innerHTML = `<div class="message success">${esc(data.message)}</div>`;
+        $('#interviewMsg').innerHTML = `<div class="message success">${esc(data.message)}</div>`;
 
-    form.reset();
-    form.querySelector('[name=id]').value = '';
+        form.reset();
+        form.querySelector('[name=id]').value = '';
 
-    await Promise.all([loadInterviews(), loadManageInterviews(), loadStats()]);
-  }catch(err){
-    $('#interviewMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
-  }
-});
+        await Promise.all([loadInterviews(), loadManageInterviews(), loadStats()]);
+      }catch(err){
+        $('#interviewMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
+      }
+    });
     $('#resetInterviewBtn').onclick = ()=>{
-  const f = $('#interviewForm');
-  f.reset();
-  f.querySelector('[name=id]').value = '';
-}; $('#reloadInterviewsBtn').onclick=loadInterviews; $('#interviewScopeSelect').onchange=loadInterviews; $('#interviewFilterForm').addEventListener('submit',(e)=>{e.preventDefault(); loadInterviews();}); $('#clearInterviewFilterBtn').onclick=()=>{ $('#interviewFilterForm').reset(); loadInterviews(); }; $('#exportInterviewsBtn').onclick=()=>{ const q = new URLSearchParams(state.interviewFilters); if(!q.get('scope')) q.set('scope', $('#interviewScopeSelect').value); location.href='/api/interviews/export.xlsx?'+q.toString(); };
+      const f = $('#interviewForm');
+      f.reset();
+      f.querySelector('[name=id]').value = '';
+    }; $('#reloadInterviewsBtn').onclick=loadInterviews; $('#interviewScopeSelect').onchange=loadInterviews; $('#interviewFilterForm').addEventListener('submit',(e)=>{e.preventDefault(); loadInterviews();}); $('#clearInterviewFilterBtn').onclick=()=>{ $('#interviewFilterForm').reset(); loadInterviews(); }; $('#exportInterviewsBtn').onclick=()=>{ const q = new URLSearchParams(state.interviewFilters); if(!q.get('scope')) q.set('scope', $('#interviewScopeSelect').value); location.href='/api/interviews/export.xlsx?'+q.toString(); };
     $('#manageFilterForm').addEventListener('submit', (e)=>{ e.preventDefault(); loadManageInterviews(); });
     $('#clearManageFilterBtn').onclick=()=>{ $('#manageFilterForm').reset(); loadManageInterviews(); };
     $('#reloadManageBtn').onclick=loadManageInterviews; $('#exportManageBtn').onclick=()=>{ const q=new URLSearchParams(state.manageFilters); if(!q.get('scope')) q.set('scope','manage'); location.href='/api/interviews/export.xlsx?'+q.toString(); };
@@ -499,26 +471,17 @@
       if(setResult){ const note = prompt('Nhập ghi chú kết quả:', '') || ''; try{ await api(`/api/interviews/${setResult.dataset.id}/result`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:setResult.dataset.status,result_note:note})}); await Promise.all([loadManageInterviews(),loadInterviews(),loadStats()]); showFlash('Đã cập nhật kết quả'); }catch(err){ showFlash(err.message,false); } }
       if(delInterview){ if(!confirm('Xóa hồ sơ này?')) return; try{ await api(`/api/interviews/${delInterview.dataset.id}`,{method:'DELETE'}); await Promise.all([loadManageInterviews(),loadInterviews(),loadStats()]); showFlash('Đã xóa hồ sơ'); }catch(err){ showFlash(err.message,false); } }
       if(editInterview){
-  try{
-    const data = await api(`/api/interviews/${editInterview.dataset.id}`);
-    const i = data.interview;
-    switchPanel('panel-interview-create');
-
-    const f = $('#interviewForm');
-    f.querySelector('[name=id]').value = i.id || '';
-
-    Object.entries(i).forEach(([k, v])=>{
-      if(f.elements[k]){
-        f.elements[k].value = v || '';
+        try{
+          const data = await api(`/api/interviews/${editInterview.dataset.id}`);
+          const i = data.interview;
+          switchPanel('panel-interview-create');
+          const f = $('#interviewForm');
+          f.querySelector('[name=id]').value = i.id || '';
+          Object.entries(i).forEach(([k,v])=>{ if(f.elements[k]) f.elements[k].value=v||''; });
+          $('#companySelectCreate').value = i.company_id || '';
+          showFlash('Đã nạp dữ liệu hồ sơ để chỉnh sửa. Bấm Lưu hồ sơ để cập nhật.', true, '#interviewMsg');
+        }catch(err){ showFlash(err.message,false); }
       }
-    });
-
-    $('#companySelectCreate').value = i.company_id || '';
-    showFlash('Đã nạp dữ liệu hồ sơ để chỉnh sửa. Bấm Lưu hồ sơ để cập nhật.', true, '#interviewMsg');
-  }catch(err){
-    showFlash(err.message,false);
-  }
-}
       if(editUser){ const u=state.users.find(x=>String(x.id)===editUser.dataset.id); if(!u) return; switchPanel('panel-admin-users'); const f=$('#userForm'); f.querySelector('[name=id]').value=u.id; f.username.value=u.username; f.password.value=''; f.email.value=u.email||''; f.full_name.value=u.full_name; f.role.value=u.role; f.account_type.value=u.account_type; f.department_id.value=u.department_id||''; f.employment_start_date.value=u.employment_start_date||''; f.annual_leave_manual_adjustment.value=u.annual_leave_manual_adjustment||0; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=(u.company_ids||[]).map(String).includes(op.value)); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=(u.managed_department_ids||[]).map(String).includes(op.value)); }
       if(deleteUser){ if(!confirm('Xóa tài khoản này?')) return; try{ await api(`/api/users/${deleteUser.dataset.id}`,{method:'DELETE'}); await loadUsers(); showFlash('Đã xóa tài khoản'); }catch(err){ showFlash(err.message,false); } }
       if(editCompany){ const row=state.companies.find(c=>String(c.id)===editCompany.dataset.id); if(!row) return; const f=$('#companyForm'); f.id.value=row.id; f.name.value=row.name; f.code.value=row.code||''; }
@@ -528,25 +491,7 @@
     });
 
     $('#userForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const f=e.target; const hiddenId=f.querySelector('[name=id]').value; const payload={ ...formDataToObj(f), company_ids:selectedMultiValues($('#userCompanySelect')), managed_department_ids:selectedMultiValues($('#userManagedDepartmentSelect')) }; const hasId=!!hiddenId; delete payload.id; try{ await api(hasId?`/api/users/${hiddenId}`:'/api/users',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); f.reset(); f.querySelector('[name=id]').value=''; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=false); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=false); await loadUsers(); await loadConfig(); showFlash(hasId?'Đã cập nhật tài khoản':'Đã tạo tài khoản'); }catch(err){ showFlash(err.message,false); } });
-    $('#userFilterForm').addEventListener('submit',(e)=>{
-  e.preventDefault();
-  loadUsers();
-});
-
-$('#clearUserFilterBtn').onclick = ()=>{
-  $('#userFilterForm').reset();
-  loadUsers();
-};
-
-$('#reloadUsersBtn').onclick = loadUsers;
-
-$('#resetUserFormBtn').onclick = ()=>{
-  const f = $('#userForm');
-  f.reset();
-  f.querySelector('[name=id]').value = '';
-  Array.from($('#userCompanySelect').options).forEach(op=>op.selected=false);
-  Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=false);
-};
+    $('#userFilterForm').addEventListener('submit',(e)=>{ e.preventDefault(); loadUsers(); }); $('#clearUserFilterBtn').onclick=()=>{ $('#userFilterForm').reset(); loadUsers(); }; $('#resetUserFormBtn').onclick=()=>{ const f=$('#userForm'); f.reset(); f.querySelector('[name=id]').value=''; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=false); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=false); };
     $('#companyForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const data=formDataToObj(e.target); const hasId=!!data.id; const id=data.id; delete data.id; try{ await api(hasId?`/api/companies/${id}`:'/api/companies',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); e.target.reset(); await loadCompaniesAndDepartmentsTables(); await loadConfig(); showFlash(hasId?'Đã cập nhật công ty':'Đã tạo công ty'); }catch(err){ showFlash(err.message,false); } });
     $('#departmentForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const data=formDataToObj(e.target); const hasId=!!data.id; const id=data.id; delete data.id; try{ await api(hasId?`/api/departments/${id}`:'/api/departments',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); e.target.reset(); await loadCompaniesAndDepartmentsTables(); await loadConfig(); showFlash(hasId?'Đã cập nhật phòng ban':'Đã tạo phòng ban'); }catch(err){ showFlash(err.message,false); } });
     $('#resetCompanyBtn').onclick=()=>$('#companyForm').reset(); $('#resetDepartmentBtn').onclick=()=>$('#departmentForm').reset();
