@@ -313,8 +313,20 @@
             <div class="field"><label>Phòng ban</label><select name="department_id" id="userDepartmentSelect"><option value="">Chọn phòng ban</option></select></div>
             <div class="field"><label>Ngày bắt đầu làm việc</label><input type="date" name="employment_start_date"></div>
             <div class="field"><label>Điều chỉnh phép năm</label><input type="number" step="0.001" name="annual_leave_manual_adjustment" value="0"></div>
-            <div class="field" style="grid-column:span 2"><label>Công ty phụ trách (nếu là Quản lý đơn)</label><select name="company_ids" id="userCompanySelect" multiple size="4"></select></div>
-            <div class="field" style="grid-column:span 2"><label>Phòng ban được xem thêm (trưởng/phó phòng)</label><select name="managed_department_ids" id="userManagedDepartmentSelect" multiple size="4"></select></div>
+            <div class="field" style="grid-column:span 2">
+              <label>Công ty phụ trách (nếu là Quản lý đơn)</label>
+              <select name="company_ids" id="userCompanySelect" multiple size="4"></select>
+              <div class="actions" style="margin-top:8px">
+                <button class="btn btn-light small" type="button" id="clearUserCompaniesBtn">Bỏ chọn công ty</button>
+              </div>
+            </div>
+            <div class="field" style="grid-column:span 2">
+              <label>Phòng ban được xem thêm (trưởng/phó phòng)</label>
+              <select name="managed_department_ids" id="userManagedDepartmentSelect" multiple size="4"></select>
+              <div class="actions" style="margin-top:8px">
+                <button class="btn btn-light small" type="button" id="clearUserManagedDepartmentsBtn">Bỏ chọn phòng ban</button>
+              </div>
+            </div>
             <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lưu tài khoản</button><button class="btn btn-light" type="button" id="resetUserFormBtn">Làm mới</button></div>
           </form>
 
@@ -437,6 +449,16 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="userDetailModal">
+    <div class="modal" style="width:min(820px,100%)">
+      <div class="toolbar">
+        <h2 style="margin:0">Thông tin tài khoản</h2>
+        <button class="btn btn-light" type="button" id="closeUserDetailBtn">Đóng</button>
+      </div>
+      <div id="userDetailContent" class="grid-2" style="margin-top:14px"></div>
+    </div>
+  </div>
+
   <script>
     const state = {
       me: null,
@@ -449,7 +471,8 @@
       leaveFilters: {},
       auditFilters: {},
       selectedImportFile: null,
-      currentInterviewHistory: []
+      currentInterviewHistory: [],
+      currentUserDetail: null
     };
 
     const $ = (s) => document.querySelector(s);
@@ -491,6 +514,16 @@
       $('#interviewHistoryWrap').classList.add('hidden');
       $('#interviewHistoryFilter').value = '';
       state.currentInterviewHistory = [];
+    }
+
+    function openUserDetailModal() {
+      $('#userDetailModal').classList.add('show');
+    }
+
+    function closeUserDetailModal() {
+      $('#userDetailModal').classList.remove('show');
+      $('#userDetailContent').innerHTML = '';
+      state.currentUserDetail = null;
     }
 
     function detailItem(label, value) {
@@ -657,6 +690,25 @@
       return 'Bạn là Nhân viên. Có thể viết đơn nghỉ, tạo hồ sơ phỏng vấn và xem danh sách của mình.';
     }
 
+    function renderUserDetail(user) {
+      const companyNames = (user.company_names || []).join(', ');
+      const managedDepartmentNames = (user.managed_department_names || []).join(', ');
+
+      $('#userDetailContent').innerHTML = `
+        ${detailItem('ID tài khoản', esc(user.id))}
+        ${detailItem('Tên đăng nhập', esc(user.username || ''))}
+        ${detailItem('Email', esc(user.email || ''))}
+        ${detailItem('Họ tên', esc(user.full_name || ''))}
+        ${detailItem('Vai trò', esc(user.role_label || ''))}
+        ${detailItem('Loại tài khoản', esc(user.account_type_label || ''))}
+        ${detailItem('Phòng ban', esc(user.department_name || ''))}
+        ${detailItem('Ngày bắt đầu làm việc', esc(toDateInputValue(user.employment_start_date) || ''))}
+        ${detailItem('Phép năm chỉnh tay', esc(user.annual_leave_manual_adjustment || 0))}
+        ${detailItem('Công ty phụ trách', esc(companyNames || ''))}
+        ${detailItem('Phòng ban được xem thêm', esc(managedDepartmentNames || ''))}
+      `;
+    }
+
     function setLoggedIn(logged) {
       $('#publicView').classList.toggle('hidden', logged);
       $('#appShell').classList.toggle('hidden', !logged);
@@ -669,6 +721,7 @@
       $('#userCompanySelect').innerHTML = opts;
       const interviewFilterSel = $('#interviewFilterCompanySelect');
       if (interviewFilterSel) interviewFilterSel.innerHTML = '<option value="">Tất cả</option>' + opts;
+      syncUserFormPermissionFields();
     }
 
     function fillDepartmentOptions() {
@@ -678,6 +731,7 @@
       if (userFilterDept) userFilterDept.innerHTML = '<option value="">Tất cả</option>' + baseOpts;
       const managedSel = $('#userManagedDepartmentSelect');
       if (managedSel) managedSel.innerHTML = baseOpts;
+      syncUserFormPermissionFields();
     }
 
     function canManageUI() {
@@ -895,6 +949,7 @@
             <td>${esc(u.annual_leave_manual_adjustment)}</td>
             <td>
               <div class="actions">
+                <button class="btn btn-dark small viewUserBtn" data-id="${u.id}">Xem</button>
                 <button class="btn btn-light small editUserBtn" data-id="${u.id}">Sửa</button>
                 <button class="btn btn-danger small deleteUserBtn" data-id="${u.id}">Xóa</button>
               </div>
@@ -1005,6 +1060,39 @@
       return Array.from(sel.selectedOptions).map(o => o.value);
     }
 
+    function clearMultiSelect(selectEl) {
+      if (!selectEl) return;
+      Array.from(selectEl.options).forEach(op => op.selected = false);
+    }
+
+    function syncUserFormPermissionFields() {
+      const form = $('#userForm');
+      if (!form) return;
+
+      const role = String(form.role?.value || '');
+      const accountType = String(form.account_type?.value || '');
+
+      const companySel = $('#userCompanySelect');
+      const managedDeptSel = $('#userManagedDepartmentSelect');
+      const clearCompanyBtn = $('#clearUserCompaniesBtn');
+      const clearManagedDeptBtn = $('#clearUserManagedDepartmentsBtn');
+
+      const allowCompanySelect = accountType === 'QUAN_LY';
+      const allowManagedDeptSelect = ['DEPUTY_MANAGER', 'DEPARTMENT_HEAD', 'ADMIN'].includes(role);
+
+      if (companySel) {
+        companySel.disabled = !allowCompanySelect;
+        if (!allowCompanySelect) clearMultiSelect(companySel);
+      }
+      if (clearCompanyBtn) clearCompanyBtn.disabled = !allowCompanySelect;
+
+      if (managedDeptSel) {
+        managedDeptSel.disabled = !allowManagedDeptSelect;
+        if (!allowManagedDeptSelect) clearMultiSelect(managedDeptSel);
+      }
+      if (clearManagedDeptBtn) clearManagedDeptBtn.disabled = !allowManagedDeptSelect;
+    }
+
     async function boot() {
       try {
         const meData = await api('/api/me');
@@ -1049,6 +1137,7 @@
     $('#loginModal').onclick = (e) => { if (e.target.id === 'loginModal') closeLogin(); };
 
     $('#closeInterviewDetailBtn').onclick = closeInterviewDetailModal;
+    $('#closeUserDetailBtn').onclick = closeUserDetailModal;
     $('#interviewDetailModal').onclick = (e) => {
       if (e.target.id === 'interviewDetailModal') closeInterviewDetailModal();
     };
@@ -1279,6 +1368,7 @@
       const editInterview = e.target.closest('.editInterviewBtn');
       const viewInterview = e.target.closest('.viewInterviewBtn');
       const historyInterview = e.target.closest('.historyInterviewBtn');
+      const viewUser = e.target.closest('.viewUserBtn');
       const editUser = e.target.closest('.editUserBtn');
       const deleteUser = e.target.closest('.deleteUserBtn');
       const editCompany = e.target.closest('.editCompanyBtn');
@@ -1347,6 +1437,14 @@
         }
       }
 
+      if (viewUser) {
+        const u = state.users.find(x => String(x.id) === viewUser.dataset.id);
+        if (!u) return;
+        state.currentUserDetail = u;
+        renderUserDetail(u);
+        openUserDetailModal();
+      }
+
       if (editUser) {
         const u = state.users.find(x => String(x.id) === editUser.dataset.id);
         if (!u) return;
@@ -1360,10 +1458,11 @@
         f.role.value = u.role;
         f.account_type.value = u.account_type;
         f.department_id.value = u.department_id || '';
-        f.employment_start_date.value = u.employment_start_date || '';
+        f.employment_start_date.value = toDateInputValue(u.employment_start_date);
         f.annual_leave_manual_adjustment.value = u.annual_leave_manual_adjustment || 0;
         Array.from($('#userCompanySelect').options).forEach(op => op.selected = (u.company_ids || []).map(String).includes(op.value));
         Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = (u.managed_department_ids || []).map(String).includes(op.value));
+        syncUserFormPermissionFields();
       }
 
       if (deleteUser) {
@@ -1438,8 +1537,9 @@
 
         f.reset();
         f.querySelector('[name=id]').value = '';
-        Array.from($('#userCompanySelect').options).forEach(op => op.selected = false);
-        Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = false);
+        clearMultiSelect($('#userCompanySelect'));
+        clearMultiSelect($('#userManagedDepartmentSelect'));
+        syncUserFormPermissionFields();
 
         await Promise.allSettled([loadUsers(), loadConfig()]);
         showFlash(hasId ? 'Đã cập nhật tài khoản' : 'Đã tạo tài khoản');
@@ -1450,12 +1550,17 @@
 
     $('#userFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadUsers(); });
     $('#clearUserFilterBtn').onclick = () => { $('#userFilterForm').reset(); loadUsers(); };
+    $('#userForm [name="account_type"]').addEventListener('change', syncUserFormPermissionFields);
+    $('#userForm [name="role"]').addEventListener('change', syncUserFormPermissionFields);
+    $('#clearUserCompaniesBtn').onclick = () => clearMultiSelect($('#userCompanySelect'));
+    $('#clearUserManagedDepartmentsBtn').onclick = () => clearMultiSelect($('#userManagedDepartmentSelect'));
     $('#resetUserFormBtn').onclick = () => {
       const f = $('#userForm');
       f.reset();
       f.querySelector('[name=id]').value = '';
-      Array.from($('#userCompanySelect').options).forEach(op => op.selected = false);
-      Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = false);
+      clearMultiSelect($('#userCompanySelect'));
+      clearMultiSelect($('#userManagedDepartmentSelect'));
+      syncUserFormPermissionFields();
     };
 
     $('#auditFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadAuditLogs(); });
