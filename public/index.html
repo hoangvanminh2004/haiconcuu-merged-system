@@ -332,7 +332,13 @@
               <div class="field"><label>Mã công ty</label><input type="text" name="code"></div>
               <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lưu công ty</button><button class="btn btn-light" type="button" id="resetCompanyBtn">Làm mới</button></div>
             </form>
-            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Tên công ty</th><th>Mã</th><th>Thao tác</th></tr></thead><tbody id="companyBody"></tbody></table></div>
+
+            <form id="companySearchForm" class="grid-2" style="margin-top:12px">
+              <div class="field"><label>Tìm kiếm công ty</label><input type="text" id="companySearchInput" placeholder="Nhập tên công ty, mã hoặc ID"></div>
+              <div class="actions" style="align-items:end"><button class="btn btn-light" type="button" id="clearCompanySearchBtn">Xóa tìm kiếm</button></div>
+            </form>
+
+            <div class="table-wrap"><table><thead><tr><th>STT</th><th>Tên công ty</th><th>Mã</th><th>Thao tác</th></tr></thead><tbody id="companyBody"></tbody></table></div>
           </div>
 
           <div class="card">
@@ -342,7 +348,13 @@
               <div class="field"><label>Tên phòng ban</label><input type="text" name="name" required></div>
               <div class="actions" style="align-items:end"><button class="btn btn-primary" type="submit">Lưu phòng ban</button><button class="btn btn-light" type="button" id="resetDepartmentBtn">Làm mới</button></div>
             </form>
-            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Tên phòng ban</th><th>Thao tác</th></tr></thead><tbody id="departmentBody"></tbody></table></div>
+
+            <form id="departmentSearchForm" class="grid-2" style="margin-top:12px">
+              <div class="field"><label>Tìm kiếm phòng ban</label><input type="text" id="departmentSearchInput" placeholder="Nhập tên phòng ban hoặc ID"></div>
+              <div class="actions" style="align-items:end"><button class="btn btn-light" type="button" id="clearDepartmentSearchBtn">Xóa tìm kiếm</button></div>
+            </form>
+
+            <div class="table-wrap"><table><thead><tr><th>STT</th><th>Tên phòng ban</th><th>Thao tác</th></tr></thead><tbody id="departmentBody"></tbody></table></div>
           </div>
         </div>
       </section>
@@ -919,6 +931,60 @@
       `).join('') || '<tr><td colspan="7" class="muted">Chưa có nhật ký</td></tr>';
     }
 
+    function renderCompaniesTable() {
+      const keyword = ($('#companySearchInput')?.value || '').trim().toLowerCase();
+
+      const filtered = state.companies.filter(c => {
+        return !keyword
+          || String(c.id || '').toLowerCase().includes(keyword)
+          || String(c.name || '').toLowerCase().includes(keyword)
+          || String(c.code || '').toLowerCase().includes(keyword);
+      });
+
+      $('#companyBody').innerHTML = filtered.map((c, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>
+            <div>${esc(c.name)}</div>
+            <div class="small muted">ID DB: ${esc(c.id)}</div>
+          </td>
+          <td>${esc(c.code || '')}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light small editCompanyBtn" data-id="${c.id}">Sửa</button>
+              <button class="btn btn-danger small deleteCompanyBtn" data-id="${c.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" class="muted">Không tìm thấy công ty phù hợp</td></tr>';
+    }
+
+    function renderDepartmentsTable() {
+      const keyword = ($('#departmentSearchInput')?.value || '').trim().toLowerCase();
+
+      const filtered = state.departments.filter(d => {
+        return !keyword
+          || String(d.id || '').toLowerCase().includes(keyword)
+          || String(d.name || '').toLowerCase().includes(keyword);
+      });
+
+      $('#departmentBody').innerHTML = filtered.map((d, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>
+            <div>${esc(d.name)}</div>
+            <div class="small muted">ID DB: ${esc(d.id)}</div>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light small editDepartmentBtn" data-id="${d.id}">Sửa</button>
+              <button class="btn btn-danger small deleteDepartmentBtn" data-id="${d.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="3" class="muted">Không tìm thấy phòng ban phù hợp</td></tr>';
+    }
+
     async function loadCompaniesAndDepartmentsTables() {
       const [companyData, departmentData] = await Promise.all([
         api('/api/companies'),
@@ -931,32 +997,8 @@
       fillCompanyOptions();
       fillDepartmentOptions();
 
-      $('#companyBody').innerHTML = state.companies.map(c => `
-        <tr>
-          <td>${c.id}</td>
-          <td>${esc(c.name)}</td>
-          <td>${esc(c.code || '')}</td>
-          <td>
-            <div class="actions">
-              <button class="btn btn-light small editCompanyBtn" data-id="${c.id}">Sửa</button>
-              <button class="btn btn-danger small deleteCompanyBtn" data-id="${c.id}">Xóa</button>
-            </div>
-          </td>
-        </tr>
-      `).join('') || '<tr><td colspan="4" class="muted">Chưa có công ty</td></tr>';
-
-      $('#departmentBody').innerHTML = state.departments.map(d => `
-        <tr>
-          <td>${d.id}</td>
-          <td>${esc(d.name)}</td>
-          <td>
-            <div class="actions">
-              <button class="btn btn-light small editDepartmentBtn" data-id="${d.id}">Sửa</button>
-              <button class="btn btn-danger small deleteDepartmentBtn" data-id="${d.id}">Xóa</button>
-            </div>
-          </td>
-        </tr>
-      `).join('') || '<tr><td colspan="3" class="muted">Chưa có phòng ban</td></tr>';
+      renderCompaniesTable();
+      renderDepartmentsTable();
     }
 
     function selectedMultiValues(sel) {
@@ -1460,8 +1502,28 @@
       }
     });
 
-    $('#resetCompanyBtn').onclick = () => $('#companyForm').reset();
-    $('#resetDepartmentBtn').onclick = () => $('#departmentForm').reset();
+    $('#resetCompanyBtn').onclick = () => {
+      $('#companyForm').reset();
+      $('#companyForm').querySelector('[name=id]').value = '';
+    };
+
+    $('#resetDepartmentBtn').onclick = () => {
+      $('#departmentForm').reset();
+      $('#departmentForm').querySelector('[name=id]').value = '';
+    };
+
+    $('#companySearchInput').addEventListener('input', renderCompaniesTable);
+    $('#departmentSearchInput').addEventListener('input', renderDepartmentsTable);
+
+    $('#clearCompanySearchBtn').onclick = () => {
+      $('#companySearchInput').value = '';
+      renderCompaniesTable();
+    };
+
+    $('#clearDepartmentSearchBtn').onclick = () => {
+      $('#departmentSearchInput').value = '';
+      renderDepartmentsTable();
+    };
 
     $('#changePasswordForm').addEventListener('submit', async (e) => {
       e.preventDefault();
