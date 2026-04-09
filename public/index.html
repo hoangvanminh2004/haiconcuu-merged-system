@@ -414,7 +414,26 @@
     function selectedMultiValues(sel){ return Array.from(sel.selectedOptions).map(o=>o.value); }
 
     $('#openLoginBtn').onclick = openLogin; $('#heroLoginBtn').onclick = openLogin; $('#closeLoginBtn').onclick = closeLogin; $('#loginModal').onclick = (e)=>{ if(e.target.id==='loginModal') closeLogin(); };
-    $('#loginForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const fd=formDataToObj(e.target); try{ await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fd)}); closeLogin(); await boot(); }catch(err){ $('#loginMsg').innerHTML=`<div class="message error">${esc(err.message)}</div>`; } });
+    $('#loginForm').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const fd = formDataToObj(e.target);
+
+  try{
+    const data = await api('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(fd)
+    });
+
+    state.me = data.user;
+    setLoggedIn(true);
+    closeLogin();
+
+    await boot();
+  }catch(err){
+    $('#loginMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
+  }
+});
     $('#logoutBtn').onclick = async()=>{ await api('/api/logout',{method:'POST'}); setLoggedIn(false); location.href='/'; };
     $$('#sidebarMenu button').forEach(btn=>btn.onclick=()=>{ switchPanel(btn.dataset.panel); if(btn.dataset.panel==='panel-admin-companies') loadCompaniesAndDepartmentsTables(); });
 
