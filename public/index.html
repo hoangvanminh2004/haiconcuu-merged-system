@@ -253,7 +253,7 @@
             <div class="field"><label>Người tạo</label><input type="text" name="recruiter_name" placeholder="Tên người tạo hồ sơ"></div>
             <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearInterviewFilterBtn">Xóa lọc</button></div>
           </form>
-          <div class="table-wrap"><table><thead><tr><th>ID</th><th>Ngày</th><th>Ca</th><th>Công ty</th><th>Người tạo</th><th>Phòng ban</th><th>Họ tên</th><th>CCCD</th><th>SĐT</th><th>Trạng thái</th><th>Ghi chú</th><th>Ảnh</th></tr></thead><tbody id="interviewBody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>ID</th><th>Ngày</th><th>Ca</th><th>Công ty</th><th>Người tạo</th><th>Phòng ban</th><th>Họ tên</th><th>CCCD</th><th>SĐT</th><th>Trạng thái</th><th>Ghi chú</th><th>Ảnh</th><th>Thao tác</th></tr></thead><tbody id="interviewBody"></tbody></table></div>
         </div>
       </section>
 
@@ -372,6 +372,16 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="interviewDetailModal">
+    <div class="modal" style="width:min(760px,100%)">
+      <div class="toolbar">
+        <h2 style="margin:0">Thông tin hồ sơ lao động</h2>
+        <button class="btn btn-light" type="button" id="closeInterviewDetailBtn">Đóng</button>
+      </div>
+      <div id="interviewDetailContent" class="grid-2" style="margin-top:14px"></div>
+    </div>
+  </div>
+
   <script>
     const state = {
       me: null,
@@ -406,6 +416,63 @@
       '"': '&quot;',
       "'": '&#39;'
     }[m]));
+
+    function toDateInputValue(v) {
+      if (!v) return '';
+      const s = String(v);
+      return s.length >= 10 ? s.slice(0, 10) : s;
+    }
+
+    function openInterviewDetailModal() {
+      $('#interviewDetailModal').classList.add('show');
+    }
+
+    function closeInterviewDetailModal() {
+      $('#interviewDetailModal').classList.remove('show');
+      $('#interviewDetailContent').innerHTML = '';
+    }
+
+    function detailItem(label, value) {
+      return `
+        <div class="card" style="padding:14px">
+          <div class="muted small">${esc(label)}</div>
+          <div style="font-weight:700;margin-top:6px;word-break:break-word">${value || ''}</div>
+        </div>
+      `;
+    }
+
+    function renderInterviewDetail(interview) {
+      $('#interviewDetailContent').innerHTML = `
+        ${detailItem('ID hồ sơ', esc(interview.id))}
+        ${detailItem('Ngày phỏng vấn', esc(interview.interview_date || ''))}
+        ${detailItem('Ca phỏng vấn', esc(interview.interview_shift_label || ''))}
+        ${detailItem('Công ty', esc(interview.company_name || ''))}
+        ${detailItem('Người tạo hồ sơ', esc(interview.recruiter_name || ''))}
+        ${detailItem('Phòng ban', esc(interview.recruiter_department || ''))}
+        ${detailItem('Họ và tên', esc(interview.full_name || ''))}
+        ${detailItem('Giới tính', esc(interview.gender_label || ''))}
+        ${detailItem('Số CCCD', esc(interview.cccd_number || ''))}
+        ${detailItem('Ngày sinh', esc(interview.birth_date || ''))}
+        ${detailItem('Số điện thoại', esc(interview.phone || ''))}
+        ${detailItem('Quê quán thường trú', esc(interview.permanent_address || ''))}
+        ${detailItem('Ngày cấp CCCD', esc(interview.cccd_issue_date || ''))}
+        ${detailItem('Ngày hết hạn CCCD', esc(interview.cccd_expiry_date || ''))}
+        ${detailItem('Trạng thái', esc(interview.status_label || ''))}
+        ${detailItem('Ghi chú kết quả', esc(interview.result_note || ''))}
+        ${detailItem('Ảnh CCCD mặt trước', interview.front_image_url ? `<a class="link-btn" href="${interview.front_image_url}" target="_blank">Mở ảnh mặt trước</a>` : 'Không có')}
+        ${detailItem('Ảnh CCCD mặt sau', interview.back_image_url ? `<a class="link-btn" href="${interview.back_image_url}" target="_blank">Mở ảnh mặt sau</a>` : 'Không có')}
+      `;
+    }
+
+    async function showInterviewDetail(id) {
+      try {
+        const data = await api(`/api/interviews/${id}`);
+        renderInterviewDetail(data.interview);
+        openInterviewDetailModal();
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    }
 
     async function api(url, options = {}) {
       const res = await fetch(url, options);
@@ -611,8 +678,11 @@
             <a class="link-btn" href="${i.front_image_url}" target="_blank">Mặt trước</a> /
             <a class="link-btn" href="${i.back_image_url}" target="_blank">Mặt sau</a>
           </td>
+          <td>
+            <button class="btn btn-light small viewInterviewBtn" data-id="${i.id}">Xem toàn bộ</button>
+          </td>
         </tr>
-      `).join('') || '<tr><td colspan="12" class="muted">Chưa có dữ liệu</td></tr>';
+      `).join('') || '<tr><td colspan="13" class="muted">Chưa có dữ liệu</td></tr>';
     }
 
     async function loadManageInterviews() {
@@ -643,6 +713,7 @@
           <td>${esc(i.result_note || '')}</td>
           <td>
             <div class="actions">
+              <button class="btn btn-light small viewInterviewBtn" data-id="${i.id}">Xem toàn bộ</button>
               <button class="btn btn-success small setResultBtn" data-id="${i.id}" data-status="PASSED">Đỗ</button>
               <button class="btn btn-danger small setResultBtn" data-id="${i.id}" data-status="FAILED">Trượt</button>
               <button class="btn btn-light small editInterviewBtn" data-id="${i.id}">Sửa</button>
@@ -770,6 +841,11 @@
     $('#heroLoginBtn').onclick = openLogin;
     $('#closeLoginBtn').onclick = closeLogin;
     $('#loginModal').onclick = (e) => { if (e.target.id === 'loginModal') closeLogin(); };
+
+    $('#closeInterviewDetailBtn').onclick = closeInterviewDetailModal;
+    $('#interviewDetailModal').onclick = (e) => {
+      if (e.target.id === 'interviewDetailModal') closeInterviewDetailModal();
+    };
 
     $('#loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -991,12 +1067,17 @@
       const setResult = e.target.closest('.setResultBtn');
       const delInterview = e.target.closest('.deleteInterviewBtn');
       const editInterview = e.target.closest('.editInterviewBtn');
+      const viewInterview = e.target.closest('.viewInterviewBtn');
       const editUser = e.target.closest('.editUserBtn');
       const deleteUser = e.target.closest('.deleteUserBtn');
       const editCompany = e.target.closest('.editCompanyBtn');
       const deleteCompany = e.target.closest('.deleteCompanyBtn');
       const editDepartment = e.target.closest('.editDepartmentBtn');
       const deleteDepartment = e.target.closest('.deleteDepartmentBtn');
+
+      if (viewInterview) {
+        await showInterviewDetail(viewInterview.dataset.id);
+      }
 
       if (setResult) {
         const note = prompt('Nhập ghi chú kết quả:', '') || '';
@@ -1029,12 +1110,21 @@
           const data = await api(`/api/interviews/${editInterview.dataset.id}`);
           const i = data.interview;
           switchPanel('panel-interview-create');
+
           const f = $('#interviewForm');
           f.querySelector('[name=id]').value = i.id || '';
-          Object.entries(i).forEach(([k, v]) => {
-            if (f.elements[k]) f.elements[k].value = v || '';
-          });
-          $('#companySelectCreate').value = i.company_id || '';
+          f.querySelector('[name=interview_date]').value = toDateInputValue(i.interview_date);
+          f.querySelector('[name=interview_shift]').value = i.interview_shift || 'MORNING';
+          f.querySelector('[name=company_id]').value = i.company_id || '';
+          f.querySelector('[name=full_name]').value = i.full_name || '';
+          f.querySelector('[name=gender]').value = i.gender || 'MALE';
+          f.querySelector('[name=cccd_number]').value = i.cccd_number || '';
+          f.querySelector('[name=birth_date]').value = toDateInputValue(i.birth_date);
+          f.querySelector('[name=phone]').value = i.phone || '';
+          f.querySelector('[name=permanent_address]').value = i.permanent_address || '';
+          f.querySelector('[name=cccd_issue_date]').value = toDateInputValue(i.cccd_issue_date);
+          f.querySelector('[name=cccd_expiry_date]').value = toDateInputValue(i.cccd_expiry_date);
+
           showFlash('Đã nạp dữ liệu hồ sơ để chỉnh sửa. Bấm Lưu hồ sơ để cập nhật.', true, '#interviewMsg');
         } catch (err) {
           showFlash(err.message, false);
