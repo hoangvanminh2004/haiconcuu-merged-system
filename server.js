@@ -122,6 +122,11 @@ function isValidDateInput(value) {
 function safeLower(v) { return String(v || '').trim().toLowerCase(); }
 function safeUpper(v) { return String(v || '').trim().toUpperCase(); }
 function pad2(v) { return String(v).padStart(2, '0'); }
+function normalizeComparableValue(value) {
+  if (value === undefined || value === null) return '';
+  if (Buffer.isBuffer(value)) return '[binary]';
+  return String(value).trim();
+}
 
 function buildTimeValue(hour, minute) {
   if (hour === null || hour === undefined || minute === null || minute === undefined) return null;
@@ -398,11 +403,19 @@ async function getUserByLogin(login) {
      LIMIT 1`, [login]);
 }
 
-async function addInterviewLog({ formId, action, oldStatus = null, newStatus = null, note = null, userId = null }) {
+async function addInterviewLog({ formId, action, oldStatus = null, newStatus = null, note = null, userId = null, changedFields = null }) {
   await pool.query(
-    `INSERT INTO interview_logs (form_id, action, old_status, new_status, note, user_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [formId, action, oldStatus, newStatus, note, userId]
+    `INSERT INTO interview_logs (form_id, action, old_status, new_status, note, user_id, changed_fields)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [formId, action, oldStatus, newStatus, note, userId, changedFields ? JSON.stringify(changedFields) : null]
+  );
+}
+
+async function addSystemAuditLog({ entityType, entityId = null, action, note = null, userId = null, targetName = null, changedFields = null }) {
+  await pool.query(
+    `INSERT INTO system_audit_logs (entity_type, entity_id, action, note, user_id, target_name, changed_fields)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [entityType, entityId, action, note, userId, targetName, changedFields ? JSON.stringify(changedFields) : null]
   );
 }
 
@@ -592,6 +605,80 @@ async function getInterviewById(id) {
   return rows[0] || null;
 }
 
+function buildInterviewChangedFields(before, after, options = {}) {
+  const changes = [];
+  const pushChange = (field, label, oldValue, newValue) => {
+    const oldNormalized = normalizeComparableValue(oldValue);
+    const newNormalized = normalizeComparableValue(newValue);
+    if (oldNormalized === newNormalized) return;
+    changes.push({
+      field,
+      label,
+      old_value: oldNormalized,
+      new_value: newNormalized,
+    });
+  };
+
+  pushChange('interview_date', 'Ngày phỏng vấn', before?.interview_date, after?.interview_date);
+  pushChange('interview_shift', 'Ca phỏng vấn', labelShift(before?.interview_shift), labelShift(after?.interview_shift));
+  pushChange('company_id', 'Công ty', before?.company_name, after?.company_name);
+  pushChange('full_name', 'Họ và tên', before?.full_name, after?.full_name);
+  pushChange('gender', 'Giới tính', labelGender(before?.gender), labelGender(after?.gender));
+  pushChange('cccd_number', 'Số CCCD', before?.cccd_number, after?.cccd_number);
+  pushChange('birth_date', 'Ngày sinh', before?.birth_date, after?.birth_date);
+  pushChange('phone', 'Số điện thoại', before?.phone, after?.phone);
+  pushChange('permanent_address', 'Quê quán thường trú', before?.permanent_address, after?.permanent_address);
+  pushChange('cccd_issue_date', 'Ngày cấp CCCD', before?.cccd_issue_date, after?.cccd_issue_date);
+  pushChange('cccd_expiry_date', 'Ngày hết hạn CCCD', before?.cccd_expiry_date, after?.cccd_expiry_date);
+
+  if (options.frontChanged) {
+    changes.push({ field: 'cccd_front', label: 'Ảnh CCCD mặt trước', old_value: 'Ảnh cũ', new_value: 'Đã thay ảnh mới' });
+  }
+  if (options.backChanged) {
+    changes.push({ field: 'cccd_back', label: 'Ảnh CCCD mặt sau', old_value: 'Ảnh cũ', new_value: 'Đã thay ảnh mới' });
+  }
+
+  return changes;
+}
+
+function stringifyJoined(values) {
+  return (Array.isArray(values) ? values : []).map((v) => String(v || '').trim()).filter(Boolean).join(', ');
+}
+
+function buildUserChangedFields(before, after) {
+  const changes = [];
+  const pushChange = (field, label, oldValue, newValue) => {
+    const oldNormalized = normalizeComparableValue(oldValue);
+    const newNormalized = normalizeComparableValue(newValue);
+    if (oldNormalized === newNormalized) return;
+    changes.push({ field, label, old_value: oldNormalized, new_value: newNormalized });
+  };
+
+  pushChange('username', 'Tên đăng nhập', before?.username, after?.username);
+  pushChange('email', 'Email', before?.email, after?.email);
+  pushChange('full_name', 'Họ tên', before?.full_name, after?.full_name);
+  pushChange('role', 'Vai trò', before?.role_label || roleLabel(before?.role), after?.role_label || roleLabel(after?.role));
+  pushChange('account_type', 'Loại tài khoản', before?.account_type_label || accountTypeLabel(before?.account_type, before?.role), after?.account_type_label || accountTypeLabel(after?.account_type, after?.role));
+  pushChange('department_name', 'Phòng ban', before?.department_name, after?.department_name);
+  pushChange('employment_start_date', 'Ngày bắt đầu làm việc', before?.employment_start_date, after?.employment_start_date);
+  pushChange('annual_leave_manual_adjustment', 'Điều chỉnh phép năm', before?.annual_leave_manual_adjustment, after?.annual_leave_manual_adjustment);
+  pushChange('company_names', 'Công ty phụ trách', stringifyJoined(before?.company_names), stringifyJoined(after?.company_names));
+  pushChange('managed_department_names', 'Phòng ban quản lý thêm', stringifyJoined(before?.managed_department_names), stringifyJoined(after?.managed_department_names));
+  return changes;
+}
+
+function buildLeaveAuditFields(leave) {
+  if (!leave) return [];
+  return [
+    { field: 'leave_type', label: 'Loại nghỉ', old_value: '', new_value: normalizeComparableValue(leave.leave_type) },
+    { field: 'from_date', label: 'Từ ngày', old_value: '', new_value: normalizeComparableValue(leave.from_date) },
+    { field: 'to_date', label: 'Đến ngày', old_value: '', new_value: normalizeComparableValue(leave.to_date) },
+    { field: 'from_time', label: 'Giờ', old_value: '', new_value: `${normalizeComparableValue(leave.from_time)} - ${normalizeComparableValue(leave.to_time)}`.trim() },
+    { field: 'annual_leave_days_used', label: 'Phép năm sử dụng', old_value: '', new_value: normalizeComparableValue(leave.annual_leave_days_used) },
+    { field: 'status', label: 'Trạng thái', old_value: '', new_value: normalizeComparableValue(leave.status) },
+  ];
+}
+
 function canViewInterview(user, interview) {
   if (!user || !interview) return false;
   if (isAdmin(user)) return true;
@@ -769,9 +856,29 @@ async function initDb() {
       new_status VARCHAR(20),
       note TEXT,
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      changed_fields JSONB,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE interview_logs ADD COLUMN IF NOT EXISTS changed_fields JSONB`).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_audit_logs (
+      id SERIAL PRIMARY KEY,
+      entity_type VARCHAR(50) NOT NULL,
+      entity_id INTEGER,
+      action VARCHAR(100) NOT NULL,
+      note TEXT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      target_name TEXT,
+      changed_fields JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`ALTER TABLE system_audit_logs ADD COLUMN IF NOT EXISTS changed_fields JSONB`).catch(() => {});
+  await pool.query(`ALTER TABLE system_audit_logs ADD COLUMN IF NOT EXISTS target_name TEXT`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_system_audit_logs_entity_type ON system_audit_logs(entity_type)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_system_audit_logs_created_at ON system_audit_logs(created_at DESC)`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS leave_requests (
@@ -1064,6 +1171,15 @@ app.post('/api/users', requireAdmin, asyncHandler(async (req, res) => {
 
     await client.query('COMMIT');
     const user = await getCurrentUser(inserted.rows[0].id);
+    await addSystemAuditLog({
+      entityType: 'USER',
+      entityId: user.id,
+      action: 'CREATE',
+      note: 'Tạo tài khoản mới',
+      userId: req.session.user.id,
+      targetName: `${user.full_name} (${user.username})`,
+      changedFields: buildUserChangedFields({}, user),
+    });
     res.json({ message: 'Đã tạo tài khoản.', user });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1091,6 +1207,7 @@ app.put('/api/users/:id', requireAdmin, asyncHandler(async (req, res) => {
   const companyIds = Array.isArray(req.body.company_ids) ? req.body.company_ids : String(req.body.company_ids || '').split(',').filter(Boolean);
   const managedDepartmentIds = Array.isArray(req.body.managed_department_ids) ? req.body.managed_department_ids : String(req.body.managed_department_ids || '').split(',').filter(Boolean);
 
+  const beforeUser = await getCurrentUser(id);
   const client = await pool.connect();
 
   try {
@@ -1126,6 +1243,15 @@ app.put('/api/users/:id', requireAdmin, asyncHandler(async (req, res) => {
     await client.query('COMMIT');
 
     const user = await getCurrentUser(id);
+    await addSystemAuditLog({
+      entityType: 'USER',
+      entityId: user.id,
+      action: 'UPDATE',
+      note: 'Cập nhật tài khoản',
+      userId: req.session.user.id,
+      targetName: `${user.full_name} (${user.username})`,
+      changedFields: buildUserChangedFields(beforeUser, user),
+    });
     if (req.session.user.id === id) setSessionUser(req, user);
     res.json({ message: 'Đã cập nhật tài khoản.', user });
   } catch (error) {
@@ -1141,7 +1267,19 @@ app.delete('/api/users/:id', requireAdmin, asyncHandler(async (req, res) => {
   if (!id) return res.status(400).json({ error: 'ID không hợp lệ.' });
   if (id === req.session.user.id) return res.status(400).json({ error: 'Không thể xóa tài khoản đang đăng nhập.' });
 
+  const targetUser = await getCurrentUser(id);
   await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+  if (targetUser) {
+    await addSystemAuditLog({
+      entityType: 'USER',
+      entityId: id,
+      action: 'DELETE',
+      note: 'Xóa tài khoản',
+      userId: req.session.user.id,
+      targetName: `${targetUser.full_name} (${targetUser.username})`,
+      changedFields: buildUserChangedFields(targetUser, {}),
+    });
+  }
   res.json({ message: 'Đã xóa tài khoản.' });
 }));
 
@@ -1305,9 +1443,19 @@ app.post('/api/leave', requireAuth, leaveUpload.single('attachment'), asyncHandl
   );
 
   const result = await baseLeaveQuery('WHERE lr.id = $1', [rows[0].id]);
+  const mappedLeave = mapLeaveRow(result.rows[0]);
+  await addSystemAuditLog({
+    entityType: 'LEAVE_REQUEST',
+    entityId: mappedLeave.id,
+    action: 'CREATE',
+    note: isAdminUser ? 'Admin tạo và tự duyệt đơn nghỉ' : 'Tạo đơn nghỉ',
+    userId: req.session.user.id,
+    targetName: `${currentUser.full_name} - Đơn #${mappedLeave.id}`,
+    changedFields: buildLeaveAuditFields(mappedLeave),
+  });
   res.json({
     message: isAdminUser ? 'Đã tạo và tự duyệt đơn nghỉ.' : 'Đã tạo đơn nghỉ.',
-    leave: mapLeaveRow(result.rows[0])
+    leave: mappedLeave
   });
 }));
 
@@ -1387,6 +1535,22 @@ async function approveOrRejectLeave(req, res, action) {
     }
 
     await client.query('COMMIT');
+    const refreshed = await baseLeaveQuery('WHERE lr.id = $1', [leaveId]);
+    const mappedLeave = mapLeaveRow(refreshed.rows[0]);
+    await addSystemAuditLog({
+      entityType: 'LEAVE_REQUEST',
+      entityId: leaveId,
+      action: action === 'approve' ? 'APPROVE' : 'REJECT',
+      note: action === 'approve' ? 'Duyệt đơn nghỉ' : `Từ chối đơn nghỉ${rejectReason ? `: ${rejectReason}` : ''}`,
+      userId: req.session.user.id,
+      targetName: `${mappedLeave?.requester_name || 'Không rõ'} - Đơn #${leaveId}`,
+      changedFields: [{
+        field: 'status',
+        label: 'Trạng thái',
+        old_value: 'Chờ duyệt',
+        new_value: action === 'approve' ? 'Đã duyệt' : 'Từ chối'
+      }].concat(action === 'reject' ? [{ field: 'reject_reason', label: 'Lý do từ chối', old_value: '', new_value: normalizeComparableValue(rejectReason) }] : []),
+    });
     return res.json({ message: action === 'approve' ? 'Duyệt đơn thành công.' : 'Từ chối đơn thành công.' });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1446,7 +1610,7 @@ app.post('/api/interviews', requireAuth, imageUpload.fields([{ name: 'cccd_front
   if (cccdExpiryDate && !isValidDateInput(cccdExpiryDate)) return res.status(400).json({ error: 'Ngày hết hạn CCCD không hợp lệ.' });
   if (cccdExpiryDate && new Date(cccdIssueDate) > new Date(cccdExpiryDate)) return res.status(400).json({ error: 'Ngày cấp CCCD không được lớn hơn ngày hết hạn CCCD.' });
 
-  const companyCheck = await queryOne(pool, `SELECT id FROM companies WHERE id = $1 LIMIT 1`, [companyId]);
+  const companyCheck = await queryOne(pool, `SELECT id, name FROM companies WHERE id = $1 LIMIT 1`, [companyId]);
   if (!companyCheck) return res.status(400).json({ error: 'Công ty không tồn tại.' });
 
   const duplicate = await queryOne(pool, `SELECT id FROM interview_forms WHERE company_id = $1 AND interview_date = $2 AND cccd_number = $3 LIMIT 1`, [companyId, interviewDate, cccdNumber]);
@@ -1598,10 +1762,10 @@ app.get('/api/interviews/import-template', requireAuth, asyncHandler(async (req,
     permanent_address: 'Bắc Giang',
     cccd_issue_date: '2020-01-01',
     cccd_expiry_date: '',
-    recruiter_name: 'Tên người tạo',
-    department_name: 'Phòng tuyển dụng',
-    status: 'Đỗ',
-    note: 'Ghi chú nếu có'
+    recruiter_name: 'Tên người tạo hồ sơ',
+    department_name: 'Tên phòng ban',
+    status: 'Chờ xử lý',
+    note: ''
   });
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1674,8 +1838,28 @@ app.put('/api/interviews/:id', requireManagePermission, imageUpload.fields([{ na
   const dup = await queryOne(pool, `SELECT id FROM interview_forms WHERE cccd_number = $1 AND company_id = $2 AND interview_date = $3 AND id <> $4 LIMIT 1`, [cccdNumber, companyId, interviewDate, id]);
   if (dup) return res.status(400).json({ error: 'Đã tồn tại hồ sơ cùng CCCD, cùng công ty và cùng ngày phỏng vấn.' });
 
+  const companyCheck = await queryOne(pool, `SELECT id, name FROM companies WHERE id = $1 LIMIT 1`, [companyId]);
+  if (!companyCheck) return res.status(400).json({ error: 'Công ty không tồn tại.' });
+
   const front = req.files?.cccd_front?.[0] || null;
   const back = req.files?.cccd_back?.[0] || null;
+
+  const changedFields = buildInterviewChangedFields(interview, {
+    interview_date: interviewDate,
+    interview_shift: interviewShift,
+    company_name: companyCheck.name,
+    full_name: fullName,
+    gender,
+    cccd_number: cccdNumber,
+    birth_date: birthDate,
+    phone,
+    permanent_address: permanentAddress,
+    cccd_issue_date: cccdIssueDate,
+    cccd_expiry_date: cccdExpiryDate,
+  }, {
+    frontChanged: !!front,
+    backChanged: !!back,
+  });
 
   const sql = `UPDATE interview_forms SET interview_date=$2, interview_shift=$3, company_id=$4, full_name=$5, cccd_number=$6, birth_date=$7, permanent_address=$8, cccd_issue_date=$9, cccd_expiry_date=$10, phone=$11, gender=$12, updated_at=NOW(),
                cccd_front_data = COALESCE($13, cccd_front_data), cccd_front_mime = COALESCE($14, cccd_front_mime), cccd_back_data = COALESCE($15, cccd_back_data), cccd_back_mime = COALESCE($16, cccd_back_mime)
@@ -1700,7 +1884,13 @@ app.put('/api/interviews/:id', requireManagePermission, imageUpload.fields([{ na
     back ? back.mimetype : null
   ]);
 
-  await addInterviewLog({ formId: id, action: 'UPDATE', note: 'Sửa hồ sơ phỏng vấn', userId: req.session.user.id });
+  await addInterviewLog({
+    formId: id,
+    action: 'UPDATE',
+    note: changedFields.length ? `Sửa hồ sơ phỏng vấn (${changedFields.length} thay đổi)` : 'Mở lưu lại hồ sơ nhưng không thay đổi dữ liệu',
+    userId: req.session.user.id,
+    changedFields,
+  });
   res.json({ message: 'Đã cập nhật hồ sơ.', interview: mapInterview(await getInterviewById(id)) });
 }));
 
@@ -1715,7 +1905,22 @@ app.put('/api/interviews/:id/result', requireManagePermission, asyncHandler(asyn
   if (!['PENDING', 'PASSED', 'FAILED'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
 
   await pool.query(`UPDATE interview_forms SET status=$2, result_note=$3, result_updated_by=$4, result_updated_at=NOW(), updated_at=NOW() WHERE id=$1`, [id, status, note, req.session.user.id]);
-  await addInterviewLog({ formId: id, action: 'UPDATE_RESULT', oldStatus: interview.status, newStatus: status, note, userId: req.session.user.id });
+  await addInterviewLog({
+    formId: id,
+    action: 'UPDATE_RESULT',
+    oldStatus: interview.status,
+    newStatus: status,
+    note,
+    userId: req.session.user.id,
+    changedFields: buildInterviewChangedFields(
+      { status: interview.status, result_note: interview.result_note },
+      { status, result_note: note },
+      {}
+    ).concat([
+      ...(normalizeComparableValue(interview.status) === normalizeComparableValue(status) ? [] : [{ field: 'status', label: 'Trạng thái', old_value: labelStatus(interview.status), new_value: labelStatus(status) }]),
+      ...(normalizeComparableValue(interview.result_note) === normalizeComparableValue(note) ? [] : [{ field: 'result_note', label: 'Ghi chú kết quả', old_value: normalizeComparableValue(interview.result_note), new_value: normalizeComparableValue(note) }]),
+    ]),
+  });
   res.json({ message: 'Đã cập nhật kết quả.', interview: mapInterview(await getInterviewById(id)) });
 }));
 
@@ -1766,114 +1971,142 @@ app.post('/api/interviews/import-excel', requireAuth, requireManagePermission, e
     const statusText = safeLower(row.getCell(14).text || '');
     const note = String(row.getCell(15).text || '').trim() || null;
 
-    let message = 'Thành công';
+    const interviewShift = shiftText.includes('chiều') ? 'AFTERNOON' : 'MORNING';
+    const gender = genderText.includes('nữ') ? 'FEMALE' : 'MALE';
+    const status =
+      statusText.includes('đỗ') ? 'PASSED' :
+      statusText.includes('trượt') ? 'FAILED' :
+      'PENDING';
 
-    try {
-      const interviewShift = shiftText.includes('chiều') ? 'AFTERNOON' : 'MORNING';
-      const gender = genderText.includes('nữ') ? 'FEMALE' : 'MALE';
-      const companyId = companyMap.get(safeLower(companyName));
-
-      let status = 'PENDING';
-      if (statusText.includes('đỗ') || statusText.includes('do') || statusText.includes('passed') || statusText === 'pass') {
-        status = 'PASSED';
-      } else if (statusText.includes('trượt') || statusText.includes('truot') || statusText.includes('failed') || statusText === 'fail') {
-        status = 'FAILED';
-      }
-
-      if (!companyId) throw new Error('Công ty không tồn tại trong hệ thống');
-      if (allowedCompanyIds && !allowedCompanyIds.includes(Number(companyId))) throw new Error('Bạn không có quyền import vào công ty này');
-      if (!fullName || !interviewDate || !birthDate || !permanentAddress || !cccdIssueDate) throw new Error('Thiếu thông tin bắt buộc');
-      if (cccdNumber.length !== 12) throw new Error('CCCD phải đủ 12 số');
-      if (phone.length !== 10) throw new Error('Số điện thoại phải đủ 10 số');
-
-      for (const d of [interviewDate, birthDate, cccdIssueDate]) {
-        if (!isValidDateInput(d)) throw new Error('Ngày tháng không hợp lệ');
-      }
-
-      if (cccdExpiryDate && !isValidDateInput(cccdExpiryDate)) throw new Error('Ngày hết hạn CCCD không hợp lệ');
-
-      const dup = await queryOne(pool,
-        `SELECT id FROM interview_forms WHERE cccd_number = $1 AND company_id = $2 AND interview_date = $3 LIMIT 1`,
-        [cccdNumber, companyId, interviewDate]
-      );
-      if (dup) throw new Error('Đã tồn tại hồ sơ trùng CCCD + công ty + ngày phỏng vấn');
-
-      let recruiterId = req.session.user.id;
-
-      if (isAdmin(req.session.user) && recruiterName) {
-        const matchedUser = await queryOne(pool,
-          `SELECT id
-           FROM users
-           WHERE LOWER(COALESCE(full_name, '')) = LOWER($1)
-              OR LOWER(COALESCE(username, '')) = LOWER($1)
-              OR LOWER(COALESCE(email, '')) = LOWER($1)
-           LIMIT 1`,
-          [recruiterName]
-        );
-        if (matchedUser) recruiterId = matchedUser.id;
-      }
-
-      const hasResult = status !== 'PENDING';
-
-      const inserted = await pool.query(
-        `INSERT INTO interview_forms(
-          interview_date, interview_shift, company_id, recruiter_id,
-          full_name, cccd_number, birth_date, permanent_address,
-          cccd_issue_date, cccd_expiry_date, phone, gender,
-          status, result_note, result_updated_by, result_updated_at
-        )
-        VALUES(
-          $1,$2,$3,$4,
-          $5,$6,$7,$8,
-          $9,$10,$11,$12,
-          $13,$14,$15,$16
-        ) RETURNING id`,
-        [
-          interviewDate,
-          interviewShift,
-          companyId,
-          recruiterId,
-          fullName,
-          cccdNumber,
-          birthDate,
-          permanentAddress,
-          cccdIssueDate,
-          cccdExpiryDate,
-          phone,
-          gender,
-          status,
-          note,
-          hasResult ? req.session.user.id : null,
-          hasResult ? new Date() : null
-        ]
-      );
-
-      await addInterviewLog({
-        formId: inserted.rows[0].id,
-        action: 'IMPORT_EXCEL',
-        newStatus: status,
-        note: `Import Excel${departmentName ? ` | Phòng ban file: ${departmentName}` : ''}`,
-        userId: req.session.user.id
-      });
-
-      success += 1;
-    } catch (error) {
-      message = error.message;
-    }
-
-    results.push({
+    const resultItem = {
       row: i,
       full_name: fullName,
       cccd_number: cccdNumber,
-      result: message === 'Thành công' ? 'OK' : 'LỖI',
-      message
-    });
+      result: 'FAILED',
+      message: ''
+    };
+
+    try {
+      if (!interviewDate || !companyName || !fullName || !cccdNumber || !birthDate || !phone || !permanentAddress || !cccdIssueDate) {
+        throw new Error('Thiếu dữ liệu bắt buộc.');
+      }
+      if (cccdNumber.length !== 12) throw new Error('CCCD phải đủ 12 số.');
+      if (phone.length !== 10) throw new Error('SĐT phải đủ 10 số.');
+      for (const d of [interviewDate, birthDate, cccdIssueDate]) {
+        if (!isValidDateInput(d)) throw new Error('Có ngày không hợp lệ.');
+      }
+      if (cccdExpiryDate && !isValidDateInput(cccdExpiryDate)) throw new Error('Ngày hết hạn CCCD không hợp lệ.');
+
+      const companyId = companyMap.get(safeLower(companyName));
+      if (!companyId) throw new Error('Không tìm thấy công ty trong hệ thống.');
+      if (allowedCompanyIds && !allowedCompanyIds.includes(companyId)) throw new Error('Bạn không có quyền import vào công ty này.');
+
+      let recruiterId = req.session.user.id;
+      if (recruiterName) {
+        const recruiter = await queryOne(pool,
+          `SELECT u.id
+           FROM users u
+           LEFT JOIN departments d ON d.id = u.department_id
+           WHERE LOWER(u.full_name) = LOWER($1)
+              OR LOWER(COALESCE(u.username,'')) = LOWER($1)
+           LIMIT 1`,
+          [recruiterName]
+        );
+        if (recruiter?.id) recruiterId = recruiter.id;
+      }
+
+      if (departmentName) {
+        const recruiterRow = await getUserById(recruiterId);
+        if (recruiterRow && !recruiterRow.department_id && !recruiterRow.department) {
+          const client = await pool.connect();
+          try {
+            await syncDepartmentFields(client, recruiterId, null, departmentName);
+          } finally {
+            client.release();
+          }
+        }
+      }
+
+      const dup = await queryOne(pool,
+        `SELECT id FROM interview_forms WHERE company_id = $1 AND interview_date = $2 AND cccd_number = $3 LIMIT 1`,
+        [companyId, interviewDate, cccdNumber]
+      );
+
+      if (dup) {
+        await pool.query(
+          `UPDATE interview_forms
+           SET recruiter_id = $2,
+               full_name = $3,
+               birth_date = $4,
+               permanent_address = $5,
+               cccd_issue_date = $6,
+               cccd_expiry_date = $7,
+               phone = $8,
+               gender = $9,
+               status = $10,
+               result_note = $11,
+               updated_at = NOW()
+           WHERE id = $1`,
+          [dup.id, recruiterId, fullName, birthDate, permanentAddress, cccdIssueDate, cccdExpiryDate, phone, gender, status, note]
+        );
+        await addInterviewLog({ formId: dup.id, action: 'UPDATE', note: 'Import Excel cập nhật hồ sơ', userId: req.session.user.id });
+        resultItem.result = 'UPDATED';
+        resultItem.message = 'Đã cập nhật hồ sơ cũ.';
+        success++;
+      } else {
+        const inserted = await pool.query(
+          `INSERT INTO interview_forms(interview_date, interview_shift, company_id, recruiter_id, full_name, cccd_number, birth_date, permanent_address, cccd_issue_date, cccd_expiry_date, phone, gender, status, result_note)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+           RETURNING id`,
+          [interviewDate, interviewShift, companyId, recruiterId, fullName, cccdNumber, birthDate, permanentAddress, cccdIssueDate, cccdExpiryDate, phone, gender, status, note]
+        );
+        await addInterviewLog({ formId: inserted.rows[0].id, action: 'CREATE', newStatus: status, note: 'Import Excel tạo hồ sơ', userId: req.session.user.id });
+        resultItem.result = 'CREATED';
+        resultItem.message = 'Đã tạo mới.';
+        success++;
+      }
+    } catch (error) {
+      resultItem.message = error.message;
+    }
+
+    results.push(resultItem);
   }
 
   res.json({
     message: `Import xong: ${success}/${results.length} dòng thành công.`,
     summary: { total: results.length, success, failed: results.length - success },
     results
+  });
+}));
+
+app.get('/api/interviews/:id/history', requireAdmin, asyncHandler(async (req, res, next) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return next();
+
+  const interview = await getInterviewById(id);
+  if (!interview) return res.status(404).json({ error: 'Không tìm thấy hồ sơ.' });
+
+  const { rows } = await pool.query(
+    `SELECT l.id, l.action, l.old_status, l.new_status, l.note, l.changed_fields, l.created_at,
+            u.full_name AS user_name, u.username AS username
+     FROM interview_logs l
+     LEFT JOIN users u ON u.id = l.user_id
+     WHERE l.form_id = $1
+     ORDER BY l.id DESC`,
+    [id]
+  );
+
+  res.json({
+    history: rows.map((row) => ({
+      id: row.id,
+      action: row.action,
+      old_status: row.old_status,
+      new_status: row.new_status,
+      note: row.note,
+      changed_fields: Array.isArray(row.changed_fields) ? row.changed_fields : [],
+      created_at: row.created_at,
+      user_name: row.user_name || row.username || 'Không rõ',
+    }))
   });
 }));
 
@@ -1887,6 +2120,43 @@ app.get('/api/logs', requireAdmin, asyncHandler(async (req, res) => {
      LIMIT 200`
   );
   res.json({ logs: rows });
+}));
+
+app.get('/api/admin/audit-logs', requireAdmin, asyncHandler(async (req, res) => {
+  const where = [];
+  const params = [];
+  const addParam = (value) => { params.push(value); return `$${params.length}`; };
+
+  if (req.query.entity_type) where.push(`sal.entity_type = ${addParam(String(req.query.entity_type).trim())}`);
+  if (req.query.q) {
+    const p = addParam(`%${String(req.query.q).trim()}%`);
+    where.push(`(COALESCE(sal.target_name, '') ILIKE ${p} OR COALESCE(sal.note, '') ILIKE ${p} OR COALESCE(u.full_name, '') ILIKE ${p})`);
+  }
+
+  const { rows } = await pool.query(
+    `SELECT sal.id, sal.entity_type, sal.entity_id, sal.action, sal.note, sal.target_name, sal.changed_fields, sal.created_at,
+            u.full_name AS user_name
+     FROM system_audit_logs sal
+     LEFT JOIN users u ON u.id = sal.user_id
+     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+     ORDER BY sal.id DESC
+     LIMIT 300`,
+    params
+  );
+
+  res.json({
+    logs: rows.map((row) => ({
+      id: row.id,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+      action: row.action,
+      note: row.note,
+      target_name: row.target_name,
+      changed_fields: Array.isArray(row.changed_fields) ? row.changed_fields : [],
+      created_at: row.created_at,
+      user_name: row.user_name || 'Không rõ',
+    }))
+  });
 }));
 
 app.get('/api/app-config', requireAuth, asyncHandler(async (req, res) => {
@@ -1903,7 +2173,10 @@ app.get(['/','/login','/app'], (req, res) => {
 function friendlyDbError(err) {
   if (!err) return 'Có lỗi xảy ra.';
   if (err.code === '23505') return 'Dữ liệu bị trùng. Có thể tên đăng nhập, email, tên công ty hoặc mã công ty đã tồn tại.';
-  if (err.code === '23503') return 'Không thể thao tác vì dữ liệu đang được liên kết ở nơi khác.';
+  if (err.code === '23503') return 'Không thể xóa vì đang có dữ liệu liên quan.';
+  if (err.code === '22P02') return 'Dữ liệu nhập không đúng định dạng.';
+  if (String(err.message || '').includes('Chỉ cho phép')) return err.message;
+  if (String(err.message || '').includes('Định dạng file')) return err.message;
   return err.message || 'Có lỗi xảy ra.';
 }
 
