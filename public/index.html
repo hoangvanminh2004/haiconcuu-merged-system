@@ -123,6 +123,7 @@
         <button data-panel="panel-manage-interviews">Quản lý hồ sơ chung</button>
         <button data-panel="panel-admin-users">Quản lý tài khoản</button>
         <button data-panel="panel-admin-companies">Công ty / Phòng ban</button>
+        <button data-panel="panel-admin-audit">Nhật ký hệ thống</button>
         <button data-panel="panel-account">Tài khoản cá nhân</button>
       </div>
       <button class="btn btn-danger" style="width:100%;margin-top:16px" id="logoutBtn">Đăng xuất</button>
@@ -346,6 +347,24 @@
         </div>
       </section>
 
+      <section id="panel-admin-audit" class="panel">
+        <div class="card">
+          <div class="toolbar">
+            <div>
+              <h2 style="margin:0">Nhật ký hệ thống</h2>
+              <div class="muted">Chỉ Admin thấy. Gồm lịch sử hồ sơ, tài khoản và đơn nghỉ.</div>
+            </div>
+            <button class="btn btn-light" id="reloadAuditBtn">Tải lại</button>
+          </div>
+          <form id="auditFilterForm" class="grid-4" style="margin-top:12px">
+            <div class="field"><label>Loại nhật ký</label><select name="entity_type"><option value="">Tất cả</option><option value="INTERVIEW">Hồ sơ phỏng vấn</option><option value="USER">Tài khoản</option><option value="LEAVE_REQUEST">Đơn nghỉ</option></select></div>
+            <div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Tên đối tượng, ghi chú, người thao tác"></div>
+            <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearAuditFilterBtn">Xóa lọc</button></div>
+          </form>
+          <div class="table-wrap"><table><thead><tr><th>Thời gian</th><th>Loại</th><th>Đối tượng</th><th>Hành động</th><th>Người thao tác</th><th>Nội dung thay đổi</th><th>Ghi chú</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+        </div>
+      </section>
+
       <section id="panel-account" class="panel">
         <div class="card" style="max-width:520px">
           <h2 style="margin-top:0">Đổi mật khẩu</h2>
@@ -373,12 +392,36 @@
   </div>
 
   <div class="modal-overlay" id="interviewDetailModal">
-    <div class="modal" style="width:min(760px,100%)">
+    <div class="modal" style="width:min(980px,100%)">
       <div class="toolbar">
         <h2 style="margin:0">Thông tin hồ sơ lao động</h2>
         <button class="btn btn-light" type="button" id="closeInterviewDetailBtn">Đóng</button>
       </div>
       <div id="interviewDetailContent" class="grid-2" style="margin-top:14px"></div>
+      <div id="interviewHistoryWrap" class="hidden" style="margin-top:16px">
+        <div class="toolbar" style="margin-bottom:10px">
+          <div>
+            <h3 style="margin:0">Lịch sử sửa thông tin</h3>
+            <div class="muted small">Chỉ Admin mới nhìn thấy mục này.</div>
+          </div>
+          <div class="right">
+            <select id="interviewHistoryFilter">
+              <option value="">Tất cả</option>
+              <option value="UPDATE">Chỉ sửa thông tin</option>
+              <option value="UPDATE_RESULT">Chỉ đỗ / trượt</option>
+              <option value="CREATE">Chỉ tạo mới</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Thời gian</th><th>Người thao tác</th><th>Hành động</th><th>Nội dung thay đổi</th><th>Ghi chú</th></tr>
+            </thead>
+            <tbody id="interviewHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -392,7 +435,9 @@
       userFilters: {},
       interviewFilters: {},
       leaveFilters: {},
-      selectedImportFile: null
+      auditFilters: {},
+      selectedImportFile: null,
+      currentInterviewHistory: []
     };
 
     const $ = (s) => document.querySelector(s);
@@ -430,6 +475,10 @@
     function closeInterviewDetailModal() {
       $('#interviewDetailModal').classList.remove('show');
       $('#interviewDetailContent').innerHTML = '';
+      $('#interviewHistoryBody').innerHTML = '';
+      $('#interviewHistoryWrap').classList.add('hidden');
+      $('#interviewHistoryFilter').value = '';
+      state.currentInterviewHistory = [];
     }
 
     function detailItem(label, value) {
@@ -439,6 +488,74 @@
           <div style="font-weight:700;margin-top:6px;word-break:break-word">${value || ''}</div>
         </div>
       `;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return esc(value);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function historyActionLabel(action) {
+      return {
+        CREATE: 'Tạo mới',
+        UPDATE: 'Sửa thông tin',
+        UPDATE_RESULT: 'Cập nhật kết quả'
+      }[action] || action || '';
+    }
+
+    function renderChangeList(changes) {
+      return (changes || []).length
+        ? changes.map(ch => `
+            <div style="margin-bottom:6px">
+              <strong>${esc(ch.label || ch.field || '')}:</strong>
+              <div class="small muted">Từ: ${esc(ch.old_value || '(trống)')}</div>
+              <div class="small">Thành: ${esc(ch.new_value || '(trống)')}</div>
+            </div>
+          `).join('')
+        : '<span class="muted">Không có thay đổi chi tiết</span>';
+    }
+
+    function renderInterviewHistory(history) {
+      const wrap = $('#interviewHistoryWrap');
+      const body = $('#interviewHistoryBody');
+      if (!state.me || state.me.role !== 'ADMIN') {
+        wrap.classList.add('hidden');
+        body.innerHTML = '';
+        return;
+      }
+
+      const filterValue = $('#interviewHistoryFilter').value;
+      const filtered = (history || []).filter(item => !filterValue || item.action === filterValue);
+      wrap.classList.remove('hidden');
+      body.innerHTML = filtered.map(item => `
+          <tr>
+            <td>${formatDateTime(item.created_at)}</td>
+            <td>${esc(item.user_name || '')}</td>
+            <td>${esc(historyActionLabel(item.action))}</td>
+            <td>${renderChangeList(Array.isArray(item.changed_fields) ? item.changed_fields : [])}</td>
+            <td>${esc(item.note || '')}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="muted">Chưa có lịch sử sửa thông tin</td></tr>';
+    }
+
+    function auditEntityLabel(value) {
+      return {
+        INTERVIEW: 'Hồ sơ phỏng vấn',
+        USER: 'Tài khoản',
+        LEAVE_REQUEST: 'Đơn nghỉ'
+      }[value] || value || '';
+    }
+
+    function auditActionLabel(value) {
+      return {
+        CREATE: 'Tạo mới',
+        UPDATE: 'Cập nhật',
+        DELETE: 'Xóa',
+        APPROVE: 'Duyệt',
+        REJECT: 'Từ chối'
+      }[value] || historyActionLabel(value);
     }
 
     function renderInterviewDetail(interview) {
@@ -464,11 +581,30 @@
       `;
     }
 
-    async function showInterviewDetail(id) {
+    async function showInterviewDetail(id, focusHistory = false) {
       try {
         const data = await api(`/api/interviews/${id}`);
         renderInterviewDetail(data.interview);
+
+        if (state.me?.role === 'ADMIN') {
+          try {
+            const historyData = await api(`/api/interviews/${id}/history`);
+            state.currentInterviewHistory = historyData.history || [];
+            renderInterviewHistory(state.currentInterviewHistory);
+          } catch (historyErr) {
+            state.currentInterviewHistory = [];
+            renderInterviewHistory([]);
+            console.error('Lỗi tải lịch sử sửa thông tin:', historyErr);
+          }
+        } else {
+          state.currentInterviewHistory = [];
+          renderInterviewHistory([]);
+        }
+
         openInterviewDetailModal();
+        if (focusHistory && state.me?.role === 'ADMIN') {
+          setTimeout(() => $('#interviewHistoryWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        }
       } catch (err) {
         showFlash(err.message, false);
       }
@@ -541,7 +677,7 @@
     }
 
     function applyPermissions() {
-      const adminOnly = ['panel-admin-users', 'panel-admin-companies'];
+      const adminOnly = ['panel-admin-users', 'panel-admin-companies', 'panel-admin-audit'];
       const manageOnly = ['panel-manage-interviews'];
 
       adminOnly.forEach(id => {
@@ -714,6 +850,7 @@
           <td>
             <div class="actions">
               <button class="btn btn-light small viewInterviewBtn" data-id="${i.id}">Xem toàn bộ</button>
+              ${state.me?.role === 'ADMIN' ? `<button class="btn btn-dark small historyInterviewBtn" data-id="${i.id}">Lịch sử</button>` : ''}
               <button class="btn btn-success small setResultBtn" data-id="${i.id}" data-status="PASSED">Đỗ</button>
               <button class="btn btn-danger small setResultBtn" data-id="${i.id}" data-status="FAILED">Trượt</button>
               <button class="btn btn-light small editInterviewBtn" data-id="${i.id}">Sửa</button>
@@ -757,6 +894,29 @@
         const wrap = $('#panel-admin-users .table-wrap');
         if (wrap) wrap.classList.add('hidden');
       }
+    }
+
+    async function loadAuditLogs() {
+      if (!state.me || state.me.role !== 'ADMIN') {
+        $('#auditBody').innerHTML = '<tr><td colspan="7" class="muted">Bạn không có quyền xem mục này</td></tr>';
+        return;
+      }
+      const fd = new FormData($('#auditFilterForm'));
+      const q = new URLSearchParams();
+      for (const [k, v] of fd.entries()) if (v) q.set(k, v);
+      state.auditFilters = Object.fromEntries(q.entries());
+      const data = await api('/api/admin/audit-logs' + (q.toString() ? `?${q.toString()}` : ''));
+      $('#auditBody').innerHTML = (data.logs || []).map(item => `
+        <tr>
+          <td>${formatDateTime(item.created_at)}</td>
+          <td>${esc(auditEntityLabel(item.entity_type))}</td>
+          <td>${esc(item.target_name || '')}</td>
+          <td>${esc(auditActionLabel(item.action))}</td>
+          <td>${esc(item.user_name || '')}</td>
+          <td>${renderChangeList(Array.isArray(item.changed_fields) ? item.changed_fields : [])}</td>
+          <td>${esc(item.note || '')}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" class="muted">Chưa có nhật ký</td></tr>';
     }
 
     async function loadCompaniesAndDepartmentsTables() {
@@ -835,6 +995,10 @@
       if (typeof loadUsers === 'function' && state.me.role === 'ADMIN') {
         try { await loadUsers(); } catch (err) { console.error('Lỗi loadUsers:', err); }
       }
+
+      if (typeof loadAuditLogs === 'function' && state.me.role === 'ADMIN') {
+        try { await loadAuditLogs(); } catch (err) { console.error('Lỗi loadAuditLogs:', err); }
+      }
     }
 
     $('#openLoginBtn').onclick = openLogin;
@@ -879,6 +1043,9 @@
       }
       if (btn.dataset.panel === 'panel-manage-interviews' && typeof loadManageInterviews === 'function' && canManageUI()) {
         loadManageInterviews();
+      }
+      if (btn.dataset.panel === 'panel-admin-audit' && typeof loadAuditLogs === 'function' && state.me?.role === 'ADMIN') {
+        loadAuditLogs();
       }
     });
 
@@ -988,6 +1155,7 @@
     $('#manageFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadManageInterviews(); });
     $('#clearManageFilterBtn').onclick = () => { $('#manageFilterForm').reset(); loadManageInterviews(); };
     $('#reloadManageBtn').onclick = loadManageInterviews;
+    $('#interviewHistoryFilter').onchange = () => renderInterviewHistory(state.currentInterviewHistory || []);
     $('#exportManageBtn').onclick = () => {
       const q = new URLSearchParams(state.manageFilters);
       if (!q.get('scope')) q.set('scope', 'manage');
@@ -1068,6 +1236,7 @@
       const delInterview = e.target.closest('.deleteInterviewBtn');
       const editInterview = e.target.closest('.editInterviewBtn');
       const viewInterview = e.target.closest('.viewInterviewBtn');
+      const historyInterview = e.target.closest('.historyInterviewBtn');
       const editUser = e.target.closest('.editUserBtn');
       const deleteUser = e.target.closest('.deleteUserBtn');
       const editCompany = e.target.closest('.editCompanyBtn');
@@ -1077,6 +1246,11 @@
 
       if (viewInterview) {
         await showInterviewDetail(viewInterview.dataset.id);
+      }
+
+      if (historyInterview) {
+        $('#interviewHistoryFilter').value = '';
+        await showInterviewDetail(historyInterview.dataset.id, true);
       }
 
       if (setResult) {
@@ -1241,6 +1415,10 @@
       Array.from($('#userCompanySelect').options).forEach(op => op.selected = false);
       Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = false);
     };
+
+    $('#auditFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadAuditLogs(); });
+    $('#clearAuditFilterBtn').onclick = () => { $('#auditFilterForm').reset(); loadAuditLogs(); };
+    $('#reloadAuditBtn').onclick = loadAuditLogs;
 
     $('#companyForm').addEventListener('submit', async (e) => {
       e.preventDefault();
