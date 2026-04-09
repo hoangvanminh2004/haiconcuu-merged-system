@@ -40,6 +40,7 @@
         </nav>
       </div>
     </header>
+
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
@@ -68,6 +69,7 @@
         </div>
       </div>
     </section>
+
     <section class="section-public wrap" id="gioi-thieu">
       <h2>Giới thiệu doanh nghiệp</h2>
       <div class="grid-3">
@@ -76,6 +78,7 @@
         <div class="card feature"><h3>Cơ hội ổn định</h3><p>Công việc rõ ràng, thu nhập tốt, môi trường làm việc lâu dài và minh bạch.</p></div>
       </div>
     </section>
+
     <section class="section-public wrap" id="Dich-vu">
       <h2>Hỗ trợ lao động</h2>
       <div class="grid-3">
@@ -84,6 +87,7 @@
         <div class="card feature"><h3>Triển khai theo domain riêng</h3><p>Dùng trực tiếp haiconcuu.vn làm website giới thiệu và cổng đăng nhập hệ thống ở góc phải.</p></div>
       </div>
     </section>
+
     <section class="section-public wrap" id="cong-ty">
       <h2>Công ty đang tuyển</h2>
       <div class="grid-3">
@@ -95,12 +99,14 @@
         <div class="card feature"><h3>Thời vụ: AAC, SAMKWANG, CHENGLOONG, DIABELL</h3><p>Ca ngày: 345.000đ, Ca đêm: 400.000đ, Chủ nhật: 500.000đ - 700.000đ</p></div>
       </div>
     </section>
+
     <section class="section-public wrap" id="lien-he">
       <div class="card">
         <h2 style="margin-top:0">Liên hệ</h2>
         <p class="muted">Hotline: 0869.951.643, 0344872107</p>
       </div>
     </section>
+
     <div class="footer">© Hai Con Cừu</div>
   </div>
 
@@ -121,16 +127,17 @@
       </div>
       <button class="btn btn-danger" style="width:100%;margin-top:16px" id="logoutBtn">Đăng xuất</button>
     </aside>
+
     <main class="content">
       <section id="panel-dashboard" class="panel active">
         <div class="toolbar">
-  <div>
-    <h2 style="margin:0">Tổng quan hệ thống</h2>
-    <div class="muted">Theo dõi thông tin cá nhân và nhóm.</div>
-    <div class="muted" id="dashboardRoleText"></div>
-  </div>
-  <div id="globalFlash"></div>
-</div>
+          <div>
+            <h2 style="margin:0">Tổng quan hệ thống</h2>
+            <div class="muted">Theo dõi thông tin cá nhân và nhóm.</div>
+            <div class="muted" id="dashboardRoleText"></div>
+          </div>
+          <div id="globalFlash"></div>
+        </div>
         <div class="stats" style="margin-top:14px">
           <div class="stat"><div class="k">Đơn nghỉ của tôi</div><div class="v" id="sLeaveTotal">0</div></div>
           <div class="stat"><div class="k">Chờ duyệt</div><div class="v" id="sLeavePending">0</div></div>
@@ -140,7 +147,14 @@
           <div class="stat"><div class="k">Phạm vi quản lý</div><div class="v" id="sInterviewManage">0</div></div>
         </div>
         <div class="grid-3" style="margin-top:14px">
-          <div class="card"><h3 style="margin-top:0">Phép năm</h3><div class="grid-3"><div><div class="muted small">Tích lũy</div><div style="font-size:24px;font-weight:800" id="leaveAccrued">0</div></div><div><div class="muted small">Đã dùng</div><div style="font-size:24px;font-weight:800" id="leaveUsed">0</div></div><div><div class="muted small">Còn lại</div><div style="font-size:24px;font-weight:800" id="leaveRemaining">0</div></div></div></div>
+          <div class="card">
+            <h3 style="margin-top:0">Phép năm</h3>
+            <div class="grid-3">
+              <div><div class="muted small">Tích lũy</div><div style="font-size:24px;font-weight:800" id="leaveAccrued">0</div></div>
+              <div><div class="muted small">Đã dùng</div><div style="font-size:24px;font-weight:800" id="leaveUsed">0</div></div>
+              <div><div class="muted small">Còn lại</div><div style="font-size:24px;font-weight:800" id="leaveRemaining">0</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -166,8 +180,27 @@
 
       <section id="panel-leave-list" class="panel">
         <div class="card">
-          <div class="toolbar"><div><h2 style="margin:0">Danh sách đơn nghỉ</h2><div class="muted">Xem đơn của tôi, đơn chờ tôi ký hoặc toàn bộ theo quyền.</div></div><div class="right"><select id="leaveViewSelect"><option value="mine">Đơn của tôi</option><option value="pending">Đơn chờ tôi ký</option><option value="signed_by_me">Lịch sử tôi đã ký</option><option value="team_signed">Lịch sử cấp dưới đã ký</option><option value="all">Toàn bộ theo quyền</option></select><button class="btn btn-light" id="reloadLeavesBtn">Tải lại</button></div></div>
-          <form id="leaveFilterForm" class="grid-4" style="margin-top:12px"><div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Người tạo, người ký, lý do"></div><div class="field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option></select></div><div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearLeaveFilterBtn">Xóa lọc</button></div></form>
+          <div class="toolbar">
+            <div>
+              <h2 style="margin:0">Danh sách đơn nghỉ</h2>
+              <div class="muted">Xem đơn của tôi, đơn chờ tôi ký hoặc toàn bộ theo quyền.</div>
+            </div>
+            <div class="right">
+              <select id="leaveViewSelect">
+                <option value="mine">Đơn của tôi</option>
+                <option value="pending">Đơn chờ tôi ký</option>
+                <option value="signed_by_me">Lịch sử tôi đã ký</option>
+                <option value="team_signed">Lịch sử cấp dưới đã ký</option>
+                <option value="all">Toàn bộ theo quyền</option>
+              </select>
+              <button class="btn btn-light" id="reloadLeavesBtn">Tải lại</button>
+            </div>
+          </div>
+          <form id="leaveFilterForm" class="grid-4" style="margin-top:12px">
+            <div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Người tạo, người ký, lý do"></div>
+            <div class="field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option></select></div>
+            <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearLeaveFilterBtn">Xóa lọc</button></div>
+          </form>
           <div class="table-wrap"><table><thead><tr><th>ID</th><th>Người tạo</th><th>Phòng ban</th><th>Người ký</th><th>Loại nghỉ</th><th>Từ ngày</th><th>Đến ngày</th><th>Giờ</th><th>Phép năm</th><th>Trạng thái</th><th>Lý do</th><th>File</th><th>Thao tác</th></tr></thead><tbody id="leaveBody"></tbody></table></div>
         </div>
       </section>
@@ -198,15 +231,47 @@
 
       <section id="panel-interview-list" class="panel">
         <div class="card">
-          <div class="toolbar"><div><h2 style="margin:0">Danh sách hồ sơ</h2><div class="muted">Hồ sơ của tôi hoặc hồ sơ phòng ban theo quyền.</div></div><div class="right"><select id="interviewScopeSelect"><option value="mine">Danh sách của tôi</option><option value="department">Hồ sơ phòng ban</option><option value="manage">Phạm vi quản lý</option></select><button class="btn btn-light" id="reloadInterviewsBtn">Tải lại</button><button class="btn btn-success" id="exportInterviewsBtn">Tải Excel</button></div></div>
-          <form id="interviewFilterForm" class="grid-4" style="margin-top:12px"><div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Tên, CCCD, SĐT, công ty"></div><div class="field"><label>Công ty</label><select name="company_id" id="interviewFilterCompanySelect"><option value="">Tất cả</option></select></div><div class="field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option><option value="PENDING">Chờ xử lý</option><option value="PASSED">Đỗ</option><option value="FAILED">Trượt</option></select></div><div class="field"><label>Người tạo</label><input type="text" name="recruiter_name" placeholder="Tên người tạo hồ sơ"></div><div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearInterviewFilterBtn">Xóa lọc</button></div></form>
+          <div class="toolbar">
+            <div>
+              <h2 style="margin:0">Danh sách hồ sơ</h2>
+              <div class="muted">Hồ sơ của tôi hoặc hồ sơ phòng ban theo quyền.</div>
+            </div>
+            <div class="right">
+              <select id="interviewScopeSelect">
+                <option value="mine">Danh sách của tôi</option>
+                <option value="department">Hồ sơ phòng ban</option>
+                <option value="manage">Phạm vi quản lý</option>
+              </select>
+              <button class="btn btn-light" id="reloadInterviewsBtn">Tải lại</button>
+              <button class="btn btn-success" id="exportInterviewsBtn">Tải Excel</button>
+            </div>
+          </div>
+          <form id="interviewFilterForm" class="grid-4" style="margin-top:12px">
+            <div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Tên, CCCD, SĐT, công ty"></div>
+            <div class="field"><label>Công ty</label><select name="company_id" id="interviewFilterCompanySelect"><option value="">Tất cả</option></select></div>
+            <div class="field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option><option value="PENDING">Chờ xử lý</option><option value="PASSED">Đỗ</option><option value="FAILED">Trượt</option></select></div>
+            <div class="field"><label>Người tạo</label><input type="text" name="recruiter_name" placeholder="Tên người tạo hồ sơ"></div>
+            <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearInterviewFilterBtn">Xóa lọc</button></div>
+          </form>
           <div class="table-wrap"><table><thead><tr><th>ID</th><th>Ngày</th><th>Ca</th><th>Công ty</th><th>Người tạo</th><th>Phòng ban</th><th>Họ tên</th><th>CCCD</th><th>SĐT</th><th>Trạng thái</th><th>Ghi chú</th><th>Ảnh</th></tr></thead><tbody id="interviewBody"></tbody></table></div>
         </div>
       </section>
 
       <section id="panel-manage-interviews" class="panel">
         <div class="card">
-          <div class="toolbar"><div><h2 style="margin:0">Quản lý hồ sơ</h2><div class="muted">Admin xem toàn bộ. Quản lý đơn chỉ xem các công ty được giao.</div></div><div class="actions"><button class="btn btn-success" id="downloadTemplateBtn">Tải xuống mẫu Excel</button><button class="btn btn-warning" id="pickImportBtn">Chọn file Excel</button><button class="btn btn-primary" id="runImportBtn">Import lên hệ thống</button><input type="file" id="importExcelInput" accept=".xlsx,.xls" class="hidden"><button class="btn btn-light" id="reloadManageBtn">Tải lại</button></div></div>
+          <div class="toolbar">
+            <div>
+              <h2 style="margin:0">Quản lý hồ sơ</h2>
+              <div class="muted">Admin xem toàn bộ. Quản lý đơn chỉ xem các công ty được giao.</div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-success" id="downloadTemplateBtn">Tải xuống mẫu Excel</button>
+              <button class="btn btn-warning" id="pickImportBtn">Chọn file Excel</button>
+              <button class="btn btn-primary" id="runImportBtn">Import lên hệ thống</button>
+              <input type="file" id="importExcelInput" accept=".xlsx,.xls" class="hidden">
+              <button class="btn btn-light" id="reloadManageBtn">Tải lại</button>
+            </div>
+          </div>
           <form id="manageFilterForm" class="grid-4" style="margin-top:12px">
             <div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Tên, CCCD, SĐT"></div>
             <div class="field"><label>Công ty</label><select name="company_id" id="manageCompanySelect"><option value="">Tất cả</option></select></div>
@@ -221,7 +286,13 @@
 
       <section id="panel-admin-users" class="panel">
         <div class="card">
-          <div class="toolbar"><div><h2 style="margin:0">Quản lý tài khoản</h2><div class="muted">Admin tạo, sửa, xóa tài khoản; gán phòng ban, loại tài khoản và công ty phụ trách.</div></div><button class="btn btn-light" id="reloadUsersBtn">Tải lại</button></div>
+          <div class="toolbar">
+            <div>
+              <h2 style="margin:0">Quản lý tài khoản</h2>
+              <div class="muted">Admin tạo, sửa, xóa tài khoản; gán phòng ban, loại tài khoản và công ty phụ trách.</div>
+            </div>
+            <button class="btn btn-light" id="reloadUsersBtn">Tải lại</button>
+          </div>
           <form id="userFilterForm" class="grid-4" style="margin-top:12px">
             <div class="field"><label>Tìm kiếm</label><input type="text" name="q" placeholder="Tài khoản, email, họ tên"></div>
             <div class="field"><label>Vai trò</label><select name="role"><option value="">Tất cả</option><option value="EMPLOYEE">Nhân viên</option><option value="DEPUTY_MANAGER">Phó phòng</option><option value="DEPARTMENT_HEAD">Trưởng phòng</option><option value="ADMIN">Admin</option></select></div>
@@ -229,6 +300,7 @@
             <div class="field"><label>Phòng ban</label><select name="department_id" id="userFilterDepartmentSelect"><option value="">Tất cả</option></select></div>
             <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lọc</button><button class="btn btn-light" type="button" id="clearUserFilterBtn">Xóa lọc</button></div>
           </form>
+
           <form id="userForm" class="grid-4" style="margin-top:12px">
             <input type="hidden" name="id">
             <div class="field"><label>Tên đăng nhập</label><input type="text" name="username" required></div>
@@ -244,6 +316,7 @@
             <div class="field" style="grid-column:span 2"><label>Phòng ban được xem thêm (trưởng/phó phòng)</label><select name="managed_department_ids" id="userManagedDepartmentSelect" multiple size="4"></select></div>
             <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lưu tài khoản</button><button class="btn btn-light" type="button" id="resetUserFormBtn">Làm mới</button></div>
           </form>
+
           <div class="table-wrap"><table><thead><tr><th>ID</th><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Loại TK</th><th>Phòng ban</th><th>Phòng ban quản lý thêm</th><th>Công ty phụ trách</th><th>Phép năm chỉnh tay</th><th>Thao tác</th></tr></thead><tbody id="userBody"></tbody></table></div>
         </div>
       </section>
@@ -252,12 +325,22 @@
         <div class="grid-2">
           <div class="card">
             <h2 style="margin-top:0">Quản lý công ty</h2>
-            <form id="companyForm" class="grid-2"><input type="hidden" name="id"><div class="field"><label>Tên công ty</label><input type="text" name="name" required></div><div class="field"><label>Mã công ty</label><input type="text" name="code"></div><div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lưu công ty</button><button class="btn btn-light" type="button" id="resetCompanyBtn">Làm mới</button></div></form>
+            <form id="companyForm" class="grid-2">
+              <input type="hidden" name="id">
+              <div class="field"><label>Tên công ty</label><input type="text" name="name" required></div>
+              <div class="field"><label>Mã công ty</label><input type="text" name="code"></div>
+              <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Lưu công ty</button><button class="btn btn-light" type="button" id="resetCompanyBtn">Làm mới</button></div>
+            </form>
             <div class="table-wrap"><table><thead><tr><th>ID</th><th>Tên công ty</th><th>Mã</th><th>Thao tác</th></tr></thead><tbody id="companyBody"></tbody></table></div>
           </div>
+
           <div class="card">
             <h2 style="margin-top:0">Quản lý phòng ban</h2>
-            <form id="departmentForm" class="grid-2"><input type="hidden" name="id"><div class="field"><label>Tên phòng ban</label><input type="text" name="name" required></div><div class="actions" style="align-items:end"><button class="btn btn-primary" type="submit">Lưu phòng ban</button><button class="btn btn-light" type="button" id="resetDepartmentBtn">Làm mới</button></div></form>
+            <form id="departmentForm" class="grid-2">
+              <input type="hidden" name="id">
+              <div class="field"><label>Tên phòng ban</label><input type="text" name="name" required></div>
+              <div class="actions" style="align-items:end"><button class="btn btn-primary" type="submit">Lưu phòng ban</button><button class="btn btn-light" type="button" id="resetDepartmentBtn">Làm mới</button></div>
+            </form>
             <div class="table-wrap"><table><thead><tr><th>ID</th><th>Tên phòng ban</th><th>Thao tác</th></tr></thead><tbody id="departmentBody"></tbody></table></div>
           </div>
         </div>
@@ -290,78 +373,227 @@
   </div>
 
   <script>
-    const state = { me:null, companies:[], departments:[], users:[], manageFilters:{}, userFilters:{}, interviewFilters:{}, leaveFilters:{}, selectedImportFile:null };
-    const $ = (s)=>document.querySelector(s); const $$=(s)=>Array.from(document.querySelectorAll(s));
-    const formDataToObj = (form)=>Object.fromEntries(new FormData(form).entries());
-    const badgeLeave = (s)=> s==='approved'?'<span class="badge approved">Đã duyệt</span>':s==='rejected'?'<span class="badge rejected">Từ chối</span>':'<span class="badge pending">Chờ duyệt</span>';
-    const badgeInterview = (s)=> s==='PASSED'?'<span class="badge approved">Đỗ</span>':s==='FAILED'?'<span class="badge rejected">Trượt</span>':'<span class="badge pending">Chờ xử lý</span>';
-    const esc = (v)=>String(v??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
-    async function api(url, options={}){
+    const state = {
+      me: null,
+      companies: [],
+      departments: [],
+      users: [],
+      manageFilters: {},
+      userFilters: {},
+      interviewFilters: {},
+      leaveFilters: {},
+      selectedImportFile: null
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+    const formDataToObj = (form) => Object.fromEntries(new FormData(form).entries());
+    const badgeLeave = (s) => s === 'approved'
+      ? '<span class="badge approved">Đã duyệt</span>'
+      : s === 'rejected'
+        ? '<span class="badge rejected">Từ chối</span>'
+        : '<span class="badge pending">Chờ duyệt</span>';
+    const badgeInterview = (s) => s === 'PASSED'
+      ? '<span class="badge approved">Đỗ</span>'
+      : s === 'FAILED'
+        ? '<span class="badge rejected">Trượt</span>'
+        : '<span class="badge pending">Chờ xử lý</span>';
+
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[m]));
+
+    async function api(url, options = {}) {
       const res = await fetch(url, options);
-      let data = null; try{ data = await res.json(); } catch { data = null; }
-      if(!res.ok) throw new Error(data?.error || data?.message || 'Có lỗi xảy ra');
+      let data = null;
+      try { data = await res.json(); } catch { data = null; }
+      if (!res.ok) throw new Error(data?.error || data?.message || 'Có lỗi xảy ra');
       return data;
     }
-    function showFlash(msg, ok=true, target='#globalFlash'){ const el=$(target); if(!el) return; el.innerHTML = `<div class="message ${ok?'success':'error'}">${esc(msg)}</div>`; setTimeout(()=>{ if(el.innerHTML.includes(msg)) el.innerHTML=''; }, 4000); }
-    function openLogin(){ $('#loginModal').classList.add('show'); }
-    function closeLogin(){ $('#loginModal').classList.remove('show'); $('#loginMsg').innerHTML=''; }
-    function switchPanel(id){ $$('.panel').forEach(p=>p.classList.remove('active')); $('#'+id).classList.add('active'); $$('#sidebarMenu button').forEach(b=>b.classList.toggle('active', b.dataset.panel===id)); }
-    function roleText(){
-      if(!state.me) return '';
-      if(state.me.role==='ADMIN') return 'Bạn là Admin. Có quyền toàn bộ: công ty, phòng ban, tài khoản, xin nghỉ, hồ sơ phỏng vấn, import Excel.';
-      if(state.me.role==='DEPARTMENT_HEAD') return 'Bạn là Trưởng phòng. Có thể duyệt đơn của cấp dưới hợp lệ, theo dõi phòng ban và tùy account type mà quản lý hồ sơ phỏng vấn.';
-      if(state.me.role==='DEPUTY_MANAGER') return 'Bạn là Phó phòng. Có thể duyệt đơn của nhân viên và xem hồ sơ phòng ban.';
+
+    function showFlash(msg, ok = true, target = '#globalFlash') {
+      const el = $(target);
+      if (!el) return;
+      el.innerHTML = `<div class="message ${ok ? 'success' : 'error'}">${esc(msg)}</div>`;
+      setTimeout(() => {
+        if (el.innerHTML.includes(msg)) el.innerHTML = '';
+      }, 4000);
+    }
+
+    function openLogin() { $('#loginModal').classList.add('show'); }
+    function closeLogin() { $('#loginModal').classList.remove('show'); $('#loginMsg').innerHTML = ''; }
+
+    function switchPanel(id) {
+      $$('.panel').forEach(p => p.classList.remove('active'));
+      const target = $('#' + id);
+      if (target) target.classList.add('active');
+      $$('#sidebarMenu button').forEach(b => b.classList.toggle('active', b.dataset.panel === id));
+    }
+
+    function roleText() {
+      if (!state.me) return '';
+      if (state.me.role === 'ADMIN') return 'Bạn là Admin. Có quyền toàn bộ: công ty, phòng ban, tài khoản, xin nghỉ, hồ sơ phỏng vấn, import Excel.';
+      if (state.me.role === 'DEPARTMENT_HEAD') return 'Bạn là Trưởng phòng. Có thể duyệt đơn của cấp dưới hợp lệ, theo dõi phòng ban và tùy account type mà quản lý hồ sơ phỏng vấn.';
+      if (state.me.role === 'DEPUTY_MANAGER') return 'Bạn là Phó phòng. Có thể duyệt đơn của nhân viên và xem hồ sơ phòng ban.';
       return 'Bạn là Nhân viên. Có thể viết đơn nghỉ, tạo hồ sơ phỏng vấn và xem danh sách của mình.';
     }
-    function setLoggedIn(logged){ $('#publicView').classList.toggle('hidden', logged); $('#appShell').classList.toggle('hidden', !logged); }
-    function fillCompanyOptions(){
-      const opts = state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+
+    function setLoggedIn(logged) {
+      $('#publicView').classList.toggle('hidden', logged);
+      $('#appShell').classList.toggle('hidden', !logged);
+    }
+
+    function fillCompanyOptions() {
+      const opts = state.companies.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
       $('#companySelectCreate').innerHTML = opts || '<option value="">Chưa có công ty</option>';
       $('#manageCompanySelect').innerHTML = '<option value="">Tất cả</option>' + opts;
       $('#userCompanySelect').innerHTML = opts;
-      const interviewFilterSel = $('#interviewFilterCompanySelect'); if(interviewFilterSel) interviewFilterSel.innerHTML = '<option value="">Tất cả</option>' + opts;
+      const interviewFilterSel = $('#interviewFilterCompanySelect');
+      if (interviewFilterSel) interviewFilterSel.innerHTML = '<option value="">Tất cả</option>' + opts;
     }
-    function fillDepartmentOptions(){
-      const baseOpts = state.departments.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+
+    function fillDepartmentOptions() {
+      const baseOpts = state.departments.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
       $('#userDepartmentSelect').innerHTML = '<option value="">Chọn phòng ban</option>' + baseOpts;
-      const userFilterDept = $('#userFilterDepartmentSelect'); if(userFilterDept) userFilterDept.innerHTML = '<option value="">Tất cả</option>' + baseOpts;
-      const managedSel = $('#userManagedDepartmentSelect'); if(managedSel) managedSel.innerHTML = baseOpts;
+      const userFilterDept = $('#userFilterDepartmentSelect');
+      if (userFilterDept) userFilterDept.innerHTML = '<option value="">Tất cả</option>' + baseOpts;
+      const managedSel = $('#userManagedDepartmentSelect');
+      if (managedSel) managedSel.innerHTML = baseOpts;
     }
-    function canManageUI(){ return state.me && (state.me.role==='ADMIN' || state.me.account_type==='QUAN_LY'); }
-    function canViewDeptUI(){ return state.me && ['DEPARTMENT_HEAD','DEPUTY_MANAGER'].includes(state.me.role) && (!!state.me.department_name || (state.me.managed_department_names||[]).length); }
-    function applyPermissions(){
-      const adminOnly = ['panel-admin-users','panel-admin-companies'];
+
+    function canManageUI() {
+      return state.me && (state.me.role === 'ADMIN' || state.me.account_type === 'QUAN_LY');
+    }
+
+    function canViewDeptUI() {
+      return state.me && ['DEPARTMENT_HEAD', 'DEPUTY_MANAGER'].includes(state.me.role) && (!!state.me.department_name || (state.me.managed_department_names || []).length);
+    }
+
+    function applyPermissions() {
+      const adminOnly = ['panel-admin-users', 'panel-admin-companies'];
       const manageOnly = ['panel-manage-interviews'];
-      adminOnly.forEach(id=>{ const btn=$(`#sidebarMenu button[data-panel="${id}"]`); if(btn) btn.style.display = state.me.role==='ADMIN' ? '' : 'none'; });
-      manageOnly.forEach(id=>{ const btn=$(`#sidebarMenu button[data-panel="${id}"]`); if(btn) btn.style.display = canManageUI() ? '' : 'none'; });
-      const deptOpt = $('#interviewScopeSelect option[value="department"]'); if(deptOpt) deptOpt.hidden = !canViewDeptUI();
-      const manageOpt = $('#interviewScopeSelect option[value="manage"]'); if(manageOpt) manageOpt.hidden = !canManageUI();
-      if(!canManageUI() && $('#interviewScopeSelect').value==='manage') $('#interviewScopeSelect').value='mine';
-      if(!canViewDeptUI() && $('#interviewScopeSelect').value==='department') $('#interviewScopeSelect').value='mine';
+
+      adminOnly.forEach(id => {
+        const btn = $(`#sidebarMenu button[data-panel="${id}"]`);
+        if (btn) btn.style.display = state.me.role === 'ADMIN' ? '' : 'none';
+      });
+
+      manageOnly.forEach(id => {
+        const btn = $(`#sidebarMenu button[data-panel="${id}"]`);
+        if (btn) btn.style.display = canManageUI() ? '' : 'none';
+      });
+
+      const deptOpt = $('#interviewScopeSelect option[value="department"]');
+      if (deptOpt) deptOpt.hidden = !canViewDeptUI();
+
+      const manageOpt = $('#interviewScopeSelect option[value="manage"]');
+      if (manageOpt) manageOpt.hidden = !canManageUI();
+
+      if (!canManageUI() && $('#interviewScopeSelect').value === 'manage') $('#interviewScopeSelect').value = 'mine';
+      if (!canViewDeptUI() && $('#interviewScopeSelect').value === 'department') $('#interviewScopeSelect').value = 'mine';
     }
-    function renderUserBox(){
-  $('#userBox').innerHTML = `<div><strong>${esc(state.me.full_name)}</strong></div><div>${esc(state.me.role_label)} • ${esc(state.me.account_type_label)}</div><div>${esc(state.me.department_name || 'Chưa có phòng ban')}</div>`;
-  const roleEl = $('#dashboardRoleText');
-  if (roleEl) roleEl.textContent = roleText();
-  applyPermissions();
-}
-    async function boot(){
-      try{ const meData=await api('/api/me'); state.me = meData.user; setLoggedIn(true); await loadConfig(); renderUserBox(); await Promise.all([loadStats(),loadApprovers(),loadLeaves(),loadInterviews()]); if(canManageUI()) await loadManageInterviews(); if(state.me.role==='ADMIN') await loadUsers(); }catch{ setLoggedIn(false); }
+
+    function renderUserBox() {
+      $('#userBox').innerHTML = `
+        <div><strong>${esc(state.me.full_name)}</strong></div>
+        <div>${esc(state.me.role_label)} • ${esc(state.me.account_type_label)}</div>
+        <div>${esc(state.me.department_name || 'Chưa có phòng ban')}</div>
+      `;
+      const roleEl = $('#dashboardRoleText');
+      if (roleEl) roleEl.textContent = roleText();
+      applyPermissions();
     }
-    async function loadConfig(){ const data=await api('/api/app-config'); state.me=data.me; state.companies=data.companies; state.departments=data.departments; fillCompanyOptions(); fillDepartmentOptions(); }
-    async function loadStats(){ const data = await api('/api/stats'); $('#sLeaveTotal').textContent = data.leave.total; $('#sLeavePending').textContent = data.leave.pending; $('#sLeaveApproved').textContent = data.leave.approved; $('#sLeaveRejected').textContent = data.leave.rejected; $('#sInterviewMine').textContent = data.interviews.mine.total; $('#sInterviewManage').textContent = data.interviews.manage.total; $('#leaveAccrued').textContent = data.annual_leave_balance.accrued_days; $('#leaveUsed').textContent = data.annual_leave_balance.used_days; $('#leaveRemaining').textContent = data.annual_leave_balance.remaining_days; }
-    async function loadApprovers(){ if(!state.me || state.me.role==='ADMIN'){ $('#approverSelect').innerHTML='<option value="">Admin không cần chọn</option>'; return; } const data=await api('/api/approvers'); const arr=data.approvers||[]; $('#approverSelect').innerHTML = arr.length?arr.map(a=>`<option value="${a.id}">${esc(a.full_name)} - ${esc(a.role_label)}${a.department_name?` (${esc(a.department_name)})`:''}</option>`).join(''):'<option value="">Không có người ký phù hợp</option>'; }
-    function leaveActions(item){ if(item.status==='pending' && Number(item.approver_id)===Number(state.me.id)) return `<div class="actions"><button class="btn btn-success small approveLeave" data-id="${item.id}">Duyệt</button><button class="btn btn-danger small rejectLeave" data-id="${item.id}">Từ chối</button></div>`; return ''; }
-    async function loadLeaves(){ const q = new URLSearchParams(); q.set('view', $('#leaveViewSelect').value); const fd = new FormData($('#leaveFilterForm')); for(const [k,v] of fd.entries()) if(v) q.set(k,v); state.leaveFilters = Object.fromEntries(q.entries()); const data = await api('/api/leaves?'+q.toString()); $('#leaveBody').innerHTML = (data.leaves||[]).map(item=>`<tr><td>${item.id}</td><td>${esc(item.requester_name)}</td><td>${esc(item.department_name||'')}</td><td>${esc(item.approver_name||'')}</td><td>${esc(item.leave_type)}</td><td>${esc(item.from_date||'')}</td><td>${esc(item.to_date||'')}</td><td>${esc(item.from_time||'')} - ${esc(item.to_time||'')}</td><td>${esc(item.annual_leave_days_used)}</td><td>${badgeLeave(item.status)}</td><td>${esc(item.reason)}${item.reject_reason?`<div class="small" style="color:#b91c1c">Lý do từ chối: ${esc(item.reject_reason)}</div>`:''}</td><td>${item.file_name?`<a class="link-btn" href="/api/leaves/${item.id}/download" target="_blank">${esc(item.file_name)}</a>`:''}</td><td>${leaveActions(item)}</td></tr>`).join('') || '<tr><td colspan="13" class="muted">Chưa có dữ liệu</td></tr>'; }
-    async function loadInterviews(){
+
+    async function loadConfig() {
+      const data = await api('/api/app-config');
+      state.me = data.me;
+      state.companies = data.companies || [];
+      state.departments = data.departments || [];
+      fillCompanyOptions();
+      fillDepartmentOptions();
+    }
+
+    async function loadStats() {
+      const data = await api('/api/stats');
+      $('#sLeaveTotal').textContent = data.leave.total;
+      $('#sLeavePending').textContent = data.leave.pending;
+      $('#sLeaveApproved').textContent = data.leave.approved;
+      $('#sLeaveRejected').textContent = data.leave.rejected;
+      $('#sInterviewMine').textContent = data.interviews.mine.total;
+      $('#sInterviewManage').textContent = data.interviews.manage.total;
+      $('#leaveAccrued').textContent = data.annual_leave_balance.accrued_days;
+      $('#leaveUsed').textContent = data.annual_leave_balance.used_days;
+      $('#leaveRemaining').textContent = data.annual_leave_balance.remaining_days;
+    }
+
+    async function loadApprovers() {
+      if (!state.me || state.me.role === 'ADMIN') {
+        $('#approverSelect').innerHTML = '<option value="">Admin không cần chọn</option>';
+        return;
+      }
+      const data = await api('/api/approvers');
+      const arr = data.approvers || [];
+      $('#approverSelect').innerHTML = arr.length
+        ? arr.map(a => `<option value="${a.id}">${esc(a.full_name)} - ${esc(a.role_label)}${a.department_name ? ` (${esc(a.department_name)})` : ''}</option>`).join('')
+        : '<option value="">Không có người ký phù hợp</option>';
+    }
+
+    function leaveActions(item) {
+      if (item.status === 'pending' && Number(item.approver_id) === Number(state.me.id)) {
+        return `
+          <div class="actions">
+            <button class="btn btn-success small approveLeave" data-id="${item.id}">Duyệt</button>
+            <button class="btn btn-danger small rejectLeave" data-id="${item.id}">Từ chối</button>
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    async function loadLeaves() {
+      const q = new URLSearchParams();
+      q.set('view', $('#leaveViewSelect').value);
+      const fd = new FormData($('#leaveFilterForm'));
+      for (const [k, v] of fd.entries()) if (v) q.set(k, v);
+      state.leaveFilters = Object.fromEntries(q.entries());
+
+      const data = await api('/api/leaves?' + q.toString());
+      $('#leaveBody').innerHTML = (data.leaves || []).map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${esc(item.requester_name)}</td>
+          <td>${esc(item.department_name || '')}</td>
+          <td>${esc(item.approver_name || '')}</td>
+          <td>${esc(item.leave_type)}</td>
+          <td>${esc(item.from_date || '')}</td>
+          <td>${esc(item.to_date || '')}</td>
+          <td>${esc(item.from_time || '')} - ${esc(item.to_time || '')}</td>
+          <td>${esc(item.annual_leave_days_used)}</td>
+          <td>${badgeLeave(item.status)}</td>
+          <td>
+            ${esc(item.reason)}
+            ${item.reject_reason ? `<div class="small" style="color:#b91c1c">Lý do từ chối: ${esc(item.reject_reason)}</div>` : ''}
+          </td>
+          <td>${item.file_name ? `<a class="link-btn" href="/api/leaves/${item.id}/download" target="_blank">${esc(item.file_name)}</a>` : ''}</td>
+          <td>${leaveActions(item)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="13" class="muted">Chưa có dữ liệu</td></tr>';
+    }
+
+    async function loadInterviews() {
       const scope = $('#interviewScopeSelect').value;
       const fd = new FormData($('#interviewFilterForm'));
       const q = new URLSearchParams();
       q.set('scope', scope);
       for (const [k, v] of fd.entries()) if (v) q.set(k, v);
-      state.interviewFilters = Object.fromEntries(q.entries());
-      const data = await api('/api/interviews?' + q.toString());
 
+      state.interviewFilters = Object.fromEntries(q.entries());
+
+      const data = await api('/api/interviews?' + q.toString());
       $('#interviewBody').innerHTML = (data.interviews || []).map(i => `
         <tr>
           <td>${i.id}</td>
@@ -375,12 +607,54 @@
           <td>${esc(i.phone || '')}</td>
           <td>${badgeInterview(i.status)}</td>
           <td>${esc(i.result_note || '')}</td>
-          <td><a class="link-btn" href="${i.front_image_url}" target="_blank">Mặt trước</a> / <a class="link-btn" href="${i.back_image_url}" target="_blank">Mặt sau</a></td>
+          <td>
+            <a class="link-btn" href="${i.front_image_url}" target="_blank">Mặt trước</a> /
+            <a class="link-btn" href="${i.back_image_url}" target="_blank">Mặt sau</a>
+          </td>
         </tr>
       `).join('') || '<tr><td colspan="12" class="muted">Chưa có dữ liệu</td></tr>';
     }
-    async function loadUsers(){
-      try{
+
+    async function loadManageInterviews() {
+      if (!canManageUI()) {
+        $('#manageBody').innerHTML = '<tr><td colspan="11" class="muted">Bạn không có quyền xem mục này</td></tr>';
+        return;
+      }
+
+      const fd = new FormData($('#manageFilterForm'));
+      const q = new URLSearchParams();
+      q.set('scope', 'manage');
+      for (const [k, v] of fd.entries()) if (v) q.set(k, v);
+
+      state.manageFilters = Object.fromEntries(q.entries());
+
+      const data = await api('/api/interviews?' + q.toString());
+      $('#manageBody').innerHTML = (data.interviews || []).map(i => `
+        <tr>
+          <td>${i.id}</td>
+          <td>${esc(i.interview_date || '')}</td>
+          <td>${esc(i.company_name || '')}</td>
+          <td>${esc(i.recruiter_name || '')}</td>
+          <td>${esc(i.recruiter_department || '')}</td>
+          <td>${esc(i.full_name || '')}</td>
+          <td>${esc(i.cccd_number || '')}</td>
+          <td>${esc(i.phone || '')}</td>
+          <td>${badgeInterview(i.status)}</td>
+          <td>${esc(i.result_note || '')}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-success small setResultBtn" data-id="${i.id}" data-status="PASSED">Đỗ</button>
+              <button class="btn btn-danger small setResultBtn" data-id="${i.id}" data-status="FAILED">Trượt</button>
+              <button class="btn btn-light small editInterviewBtn" data-id="${i.id}">Sửa</button>
+              <button class="btn btn-danger small deleteInterviewBtn" data-id="${i.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="11" class="muted">Chưa có dữ liệu</td></tr>';
+    }
+
+    async function loadUsers() {
+      try {
         const fd = new FormData($('#userFilterForm'));
         const q = new URLSearchParams();
         for (const [k, v] of fd.entries()) if (v) q.set(k, v);
@@ -388,7 +662,7 @@
         const data = await api('/api/users' + (q.toString() ? `?${q.toString()}` : ''));
         state.users = data.users || [];
 
-        $('#userBody').innerHTML = state.users.map(u=>`
+        $('#userBody').innerHTML = state.users.map(u => `
           <tr>
             <td>${u.id}</td>
             <td>${esc(u.username)}</td>
@@ -407,45 +681,192 @@
             </td>
           </tr>
         `).join('') || '<tr><td colspan="10" class="muted">Không có dữ liệu</td></tr>';
-      }catch{
-        $('#panel-admin-users .table-wrap').classList.add('hidden');
+      } catch (err) {
+        console.error(err);
+        const wrap = $('#panel-admin-users .table-wrap');
+        if (wrap) wrap.classList.add('hidden');
       }
     }
-    function selectedMultiValues(sel){ return Array.from(sel.selectedOptions).map(o=>o.value); }
 
-    $('#openLoginBtn').onclick = openLogin; $('#heroLoginBtn').onclick = openLogin; $('#closeLoginBtn').onclick = closeLogin; $('#loginModal').onclick = (e)=>{ if(e.target.id==='loginModal') closeLogin(); };
-    $('#loginForm').addEventListener('submit', async(e)=>{
-  e.preventDefault();
-  const fd = formDataToObj(e.target);
+    async function loadCompaniesAndDepartmentsTables() {
+      const [companyData, departmentData] = await Promise.all([
+        api('/api/companies'),
+        api('/api/departments')
+      ]);
 
-  try{
-    const data = await api('/api/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(fd)
+      state.companies = companyData.companies || [];
+      state.departments = departmentData.departments || [];
+
+      fillCompanyOptions();
+      fillDepartmentOptions();
+
+      $('#companyBody').innerHTML = state.companies.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${esc(c.name)}</td>
+          <td>${esc(c.code || '')}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light small editCompanyBtn" data-id="${c.id}">Sửa</button>
+              <button class="btn btn-danger small deleteCompanyBtn" data-id="${c.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" class="muted">Chưa có công ty</td></tr>';
+
+      $('#departmentBody').innerHTML = state.departments.map(d => `
+        <tr>
+          <td>${d.id}</td>
+          <td>${esc(d.name)}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light small editDepartmentBtn" data-id="${d.id}">Sửa</button>
+              <button class="btn btn-danger small deleteDepartmentBtn" data-id="${d.id}">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="3" class="muted">Chưa có phòng ban</td></tr>';
+    }
+
+    function selectedMultiValues(sel) {
+      return Array.from(sel.selectedOptions).map(o => o.value);
+    }
+
+    async function boot() {
+      try {
+        const meData = await api('/api/me');
+        state.me = meData.user;
+        setLoggedIn(true);
+      } catch (err) {
+        console.error('Lỗi /api/me:', err);
+        setLoggedIn(false);
+        return;
+      }
+
+      try {
+        await loadConfig();
+        renderUserBox();
+      } catch (err) {
+        console.error('Lỗi loadConfig/renderUserBox:', err);
+      }
+
+      await Promise.allSettled([
+        loadStats(),
+        loadApprovers(),
+        loadLeaves(),
+        loadInterviews()
+      ]);
+
+      if (typeof loadManageInterviews === 'function' && canManageUI()) {
+        try { await loadManageInterviews(); } catch (err) { console.error('Lỗi loadManageInterviews:', err); }
+      }
+
+      if (typeof loadUsers === 'function' && state.me.role === 'ADMIN') {
+        try { await loadUsers(); } catch (err) { console.error('Lỗi loadUsers:', err); }
+      }
+    }
+
+    $('#openLoginBtn').onclick = openLogin;
+    $('#heroLoginBtn').onclick = openLogin;
+    $('#closeLoginBtn').onclick = closeLogin;
+    $('#loginModal').onclick = (e) => { if (e.target.id === 'loginModal') closeLogin(); };
+
+    $('#loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = formDataToObj(e.target);
+      try {
+        const data = await api('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fd)
+        });
+
+        state.me = data.user;
+        setLoggedIn(true);
+        closeLogin();
+        await boot();
+      } catch (err) {
+        $('#loginMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
+      }
     });
 
-    state.me = data.user;
-    setLoggedIn(true);
-    closeLogin();
+    $('#logoutBtn').onclick = async () => {
+      try { await api('/api/logout', { method: 'POST' }); } catch {}
+      setLoggedIn(false);
+      location.href = '/';
+    };
 
-    await boot();
-  }catch(err){
-    $('#loginMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
-  }
-});
-    $('#logoutBtn').onclick = async()=>{ await api('/api/logout',{method:'POST'}); setLoggedIn(false); location.href='/'; };
-    $$('#sidebarMenu button').forEach(btn=>btn.onclick=()=>{ switchPanel(btn.dataset.panel); if(btn.dataset.panel==='panel-admin-companies') loadCompaniesAndDepartmentsTables(); });
-
-    $('#leaveForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const fd=new FormData(e.target); try{ const r=await fetch('/api/leave',{method:'POST',body:fd}); const data=await r.json(); if(!r.ok) throw new Error(data.error||data.message||'Lỗi'); $('#leaveMsg').innerHTML=`<div class="message success">${esc(data.message)}</div>`; e.target.reset(); await Promise.all([loadLeaves(),loadStats()]); }catch(err){ $('#leaveMsg').innerHTML=`<div class="message error">${esc(err.message)}</div>`; } });
-    $('#leaveViewSelect').onchange=loadLeaves; $('#reloadLeavesBtn').onclick=loadLeaves; $('#leaveFilterForm').addEventListener('submit',(e)=>{e.preventDefault(); loadLeaves();}); $('#clearLeaveFilterBtn').onclick=()=>{ $('#leaveFilterForm').reset(); loadLeaves(); };
-    document.addEventListener('click', async(e)=>{
-      const approveBtn=e.target.closest('.approveLeave'); const rejectBtn=e.target.closest('.rejectLeave');
-      if(approveBtn){ try{ await api(`/api/leaves/${approveBtn.dataset.id}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); await Promise.all([loadLeaves(),loadStats()]); showFlash('Đã duyệt đơn'); }catch(err){ showFlash(err.message,false); } }
-      if(rejectBtn){ const reason=prompt('Nhập lý do từ chối:')||''; try{ await api(`/api/leaves/${rejectBtn.dataset.id}/reject`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})}); await Promise.all([loadLeaves(),loadStats()]); showFlash('Đã từ chối đơn'); }catch(err){ showFlash(err.message,false); } }
+    $$('#sidebarMenu button').forEach(btn => btn.onclick = () => {
+      switchPanel(btn.dataset.panel);
+      if (btn.dataset.panel === 'panel-admin-companies' && typeof loadCompaniesAndDepartmentsTables === 'function') {
+        loadCompaniesAndDepartmentsTables();
+      }
+      if (btn.dataset.panel === 'panel-manage-interviews' && typeof loadManageInterviews === 'function' && canManageUI()) {
+        loadManageInterviews();
+      }
     });
 
-    $('#interviewForm').addEventListener('submit', async(e)=>{
+    $('#leaveForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (state.me?.role === 'ADMIN') {
+        $('#leaveMsg').innerHTML = `<div class="message error">Hiện backend của bạn vẫn đang bắt buộc chọn người ký cho đơn nghỉ. Admin chưa tạo đơn trực tiếp được.</div>`;
+        return;
+      }
+
+      const fd = new FormData(e.target);
+      try {
+        const r = await fetch('/api/leave', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || data.message || 'Lỗi');
+        $('#leaveMsg').innerHTML = `<div class="message success">${esc(data.message)}</div>`;
+        e.target.reset();
+        await Promise.allSettled([loadLeaves(), loadStats(), loadApprovers()]);
+      } catch (err) {
+        $('#leaveMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
+      }
+    });
+
+    $('#leaveViewSelect').onchange = loadLeaves;
+    $('#reloadLeavesBtn').onclick = loadLeaves;
+    $('#leaveFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadLeaves(); });
+    $('#clearLeaveFilterBtn').onclick = () => { $('#leaveFilterForm').reset(); loadLeaves(); };
+
+    document.addEventListener('click', async (e) => {
+      const approveBtn = e.target.closest('.approveLeave');
+      const rejectBtn = e.target.closest('.rejectLeave');
+
+      if (approveBtn) {
+        try {
+          await api(`/api/leaves/${approveBtn.dataset.id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}'
+          });
+          await Promise.allSettled([loadLeaves(), loadStats()]);
+          showFlash('Đã duyệt đơn');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+
+      if (rejectBtn) {
+        const reason = prompt('Nhập lý do từ chối:') || '';
+        try {
+          await api(`/api/leaves/${rejectBtn.dataset.id}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+          });
+          await Promise.allSettled([loadLeaves(), loadStats()]);
+          showFlash('Đã từ chối đơn');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+    });
+
+    $('#interviewForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const form = e.target;
@@ -455,68 +876,348 @@
       const url = hiddenId ? `/api/interviews/${hiddenId}` : '/api/interviews';
       const method = hiddenId ? 'PUT' : 'POST';
 
-      try{
+      try {
         const r = await fetch(url, { method, body: fd });
         const data = await r.json();
-        if(!r.ok) throw new Error(data.error || 'Lỗi');
+        if (!r.ok) throw new Error(data.error || 'Lỗi');
 
         $('#interviewMsg').innerHTML = `<div class="message success">${esc(data.message)}</div>`;
-
         form.reset();
         form.querySelector('[name=id]').value = '';
 
-        await Promise.all([loadInterviews(), loadManageInterviews(), loadStats()]);
-      }catch(err){
+        const tasks = [loadInterviews(), loadStats()];
+        if (canManageUI()) tasks.push(loadManageInterviews());
+        await Promise.allSettled(tasks);
+      } catch (err) {
         $('#interviewMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
       }
     });
-    $('#resetInterviewBtn').onclick = ()=>{
+
+    $('#resetInterviewBtn').onclick = () => {
       const f = $('#interviewForm');
       f.reset();
       f.querySelector('[name=id]').value = '';
-    }; $('#reloadInterviewsBtn').onclick=loadInterviews; $('#interviewScopeSelect').onchange=loadInterviews; $('#interviewFilterForm').addEventListener('submit',(e)=>{e.preventDefault(); loadInterviews();}); $('#clearInterviewFilterBtn').onclick=()=>{ $('#interviewFilterForm').reset(); loadInterviews(); }; $('#exportInterviewsBtn').onclick=()=>{ const q = new URLSearchParams(state.interviewFilters); if(!q.get('scope')) q.set('scope', $('#interviewScopeSelect').value); location.href='/api/interviews/export.xlsx?'+q.toString(); };
-    $('#manageFilterForm').addEventListener('submit', (e)=>{ e.preventDefault(); loadManageInterviews(); });
-    $('#clearManageFilterBtn').onclick=()=>{ $('#manageFilterForm').reset(); loadManageInterviews(); };
-    $('#reloadManageBtn').onclick=loadManageInterviews; $('#exportManageBtn').onclick=()=>{ const q=new URLSearchParams(state.manageFilters); if(!q.get('scope')) q.set('scope','manage'); location.href='/api/interviews/export.xlsx?'+q.toString(); };
-    $('#downloadTemplateBtn').onclick=async()=>{ try{ const res=await fetch('/api/interviews/import-template'); if(!res.ok){ let data=null; try{ data=await res.json(); }catch{} throw new Error(data?.error||'Không tải được mẫu Excel'); } const blob=await res.blob(); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='mau-import-ho-so.xlsx'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showFlash('Đã tải mẫu Excel'); }catch(err){ showFlash(err.message,false); } };
-    $('#pickImportBtn').onclick=()=>$('#importExcelInput').click(); $('#importExcelInput').onchange=(e)=>{ state.selectedImportFile=e.target.files[0]||null; showFlash(state.selectedImportFile?`Đã chọn file: ${state.selectedImportFile.name}`:'Chưa chọn file',!!state.selectedImportFile); };
-    $('#runImportBtn').onclick=async()=>{ if(!state.selectedImportFile){ showFlash('Bạn chưa chọn file Excel',false); return; } const fd=new FormData(); fd.append('file',state.selectedImportFile); try{ const r=await fetch('/api/interviews/import-excel',{method:'POST',body:fd}); const data=await r.json(); if(!r.ok) throw new Error(data.error||'Lỗi import'); $('#importResultWrap').innerHTML = `<div class="message success">${esc(data.message)}</div><div class="table-wrap"><table><thead><tr><th>Dòng</th><th>Họ tên</th><th>CCCD</th><th>Kết quả</th><th>Chi tiết</th></tr></thead><tbody>${(data.results||[]).map(r=>`<tr><td>${r.row}</td><td>${esc(r.full_name)}</td><td>${esc(r.cccd_number)}</td><td>${esc(r.result)}</td><td>${esc(r.message)}</td></tr>`).join('')}</tbody></table></div>`; await Promise.all([loadInterviews(),loadManageInterviews(),loadStats()]); }catch(err){ showFlash(err.message,false); } };
+    };
 
-    document.addEventListener('click', async(e)=>{
-      const setResult = e.target.closest('.setResultBtn'); const delInterview = e.target.closest('.deleteInterviewBtn'); const editInterview = e.target.closest('.editInterviewBtn');
-      const editUser = e.target.closest('.editUserBtn'); const deleteUser = e.target.closest('.deleteUserBtn');
-      const editCompany = e.target.closest('.editCompanyBtn'); const deleteCompany = e.target.closest('.deleteCompanyBtn');
-      const editDepartment = e.target.closest('.editDepartmentBtn'); const deleteDepartment = e.target.closest('.deleteDepartmentBtn');
-      if(setResult){ const note = prompt('Nhập ghi chú kết quả:', '') || ''; try{ await api(`/api/interviews/${setResult.dataset.id}/result`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:setResult.dataset.status,result_note:note})}); await Promise.all([loadManageInterviews(),loadInterviews(),loadStats()]); showFlash('Đã cập nhật kết quả'); }catch(err){ showFlash(err.message,false); } }
-      if(delInterview){ if(!confirm('Xóa hồ sơ này?')) return; try{ await api(`/api/interviews/${delInterview.dataset.id}`,{method:'DELETE'}); await Promise.all([loadManageInterviews(),loadInterviews(),loadStats()]); showFlash('Đã xóa hồ sơ'); }catch(err){ showFlash(err.message,false); } }
-      if(editInterview){
-        try{
+    $('#reloadInterviewsBtn').onclick = loadInterviews;
+    $('#interviewScopeSelect').onchange = loadInterviews;
+    $('#interviewFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadInterviews(); });
+    $('#clearInterviewFilterBtn').onclick = () => { $('#interviewFilterForm').reset(); loadInterviews(); };
+    $('#exportInterviewsBtn').onclick = () => {
+      const q = new URLSearchParams(state.interviewFilters);
+      if (!q.get('scope')) q.set('scope', $('#interviewScopeSelect').value);
+      location.href = '/api/interviews/export.xlsx?' + q.toString();
+    };
+
+    $('#manageFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadManageInterviews(); });
+    $('#clearManageFilterBtn').onclick = () => { $('#manageFilterForm').reset(); loadManageInterviews(); };
+    $('#reloadManageBtn').onclick = loadManageInterviews;
+    $('#exportManageBtn').onclick = () => {
+      const q = new URLSearchParams(state.manageFilters);
+      if (!q.get('scope')) q.set('scope', 'manage');
+      location.href = '/api/interviews/export.xlsx?' + q.toString();
+    };
+
+    $('#downloadTemplateBtn').onclick = async () => {
+      try {
+        const res = await fetch('/api/interviews/import-template');
+        if (!res.ok) {
+          let data = null;
+          try { data = await res.json(); } catch {}
+          throw new Error(data?.error || 'Không tải được mẫu Excel');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mau-import-ho-so.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showFlash('Đã tải mẫu Excel');
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    };
+
+    $('#pickImportBtn').onclick = () => $('#importExcelInput').click();
+    $('#importExcelInput').onchange = (e) => {
+      state.selectedImportFile = e.target.files[0] || null;
+      showFlash(state.selectedImportFile ? `Đã chọn file: ${state.selectedImportFile.name}` : 'Chưa chọn file', !!state.selectedImportFile);
+    };
+
+    $('#runImportBtn').onclick = async () => {
+      if (!state.selectedImportFile) {
+        showFlash('Bạn chưa chọn file Excel', false);
+        return;
+      }
+      const fd = new FormData();
+      fd.append('file', state.selectedImportFile);
+      try {
+        const r = await fetch('/api/interviews/import-excel', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Lỗi import');
+
+        $('#importResultWrap').innerHTML = `
+          <div class="message success">${esc(data.message)}</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Dòng</th><th>Họ tên</th><th>CCCD</th><th>Kết quả</th><th>Chi tiết</th></tr></thead>
+              <tbody>
+                ${(data.results || []).map(r => `
+                  <tr>
+                    <td>${r.row}</td>
+                    <td>${esc(r.full_name)}</td>
+                    <td>${esc(r.cccd_number)}</td>
+                    <td>${esc(r.result)}</td>
+                    <td>${esc(r.message)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        const tasks = [loadInterviews(), loadStats()];
+        if (canManageUI()) tasks.push(loadManageInterviews());
+        await Promise.allSettled(tasks);
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    };
+
+    document.addEventListener('click', async (e) => {
+      const setResult = e.target.closest('.setResultBtn');
+      const delInterview = e.target.closest('.deleteInterviewBtn');
+      const editInterview = e.target.closest('.editInterviewBtn');
+      const editUser = e.target.closest('.editUserBtn');
+      const deleteUser = e.target.closest('.deleteUserBtn');
+      const editCompany = e.target.closest('.editCompanyBtn');
+      const deleteCompany = e.target.closest('.deleteCompanyBtn');
+      const editDepartment = e.target.closest('.editDepartmentBtn');
+      const deleteDepartment = e.target.closest('.deleteDepartmentBtn');
+
+      if (setResult) {
+        const note = prompt('Nhập ghi chú kết quả:', '') || '';
+        try {
+          await api(`/api/interviews/${setResult.dataset.id}/result`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: setResult.dataset.status, result_note: note })
+          });
+          await Promise.allSettled([loadManageInterviews(), loadInterviews(), loadStats()]);
+          showFlash('Đã cập nhật kết quả');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+
+      if (delInterview) {
+        if (!confirm('Xóa hồ sơ này?')) return;
+        try {
+          await api(`/api/interviews/${delInterview.dataset.id}`, { method: 'DELETE' });
+          await Promise.allSettled([loadManageInterviews(), loadInterviews(), loadStats()]);
+          showFlash('Đã xóa hồ sơ');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+
+      if (editInterview) {
+        try {
           const data = await api(`/api/interviews/${editInterview.dataset.id}`);
           const i = data.interview;
           switchPanel('panel-interview-create');
           const f = $('#interviewForm');
           f.querySelector('[name=id]').value = i.id || '';
-          Object.entries(i).forEach(([k,v])=>{ if(f.elements[k]) f.elements[k].value=v||''; });
+          Object.entries(i).forEach(([k, v]) => {
+            if (f.elements[k]) f.elements[k].value = v || '';
+          });
           $('#companySelectCreate').value = i.company_id || '';
           showFlash('Đã nạp dữ liệu hồ sơ để chỉnh sửa. Bấm Lưu hồ sơ để cập nhật.', true, '#interviewMsg');
-        }catch(err){ showFlash(err.message,false); }
+        } catch (err) {
+          showFlash(err.message, false);
+        }
       }
-      if(editUser){ const u=state.users.find(x=>String(x.id)===editUser.dataset.id); if(!u) return; switchPanel('panel-admin-users'); const f=$('#userForm'); f.querySelector('[name=id]').value=u.id; f.username.value=u.username; f.password.value=''; f.email.value=u.email||''; f.full_name.value=u.full_name; f.role.value=u.role; f.account_type.value=u.account_type; f.department_id.value=u.department_id||''; f.employment_start_date.value=u.employment_start_date||''; f.annual_leave_manual_adjustment.value=u.annual_leave_manual_adjustment||0; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=(u.company_ids||[]).map(String).includes(op.value)); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=(u.managed_department_ids||[]).map(String).includes(op.value)); }
-      if(deleteUser){ if(!confirm('Xóa tài khoản này?')) return; try{ await api(`/api/users/${deleteUser.dataset.id}`,{method:'DELETE'}); await loadUsers(); showFlash('Đã xóa tài khoản'); }catch(err){ showFlash(err.message,false); } }
-      if(editCompany){ const row=state.companies.find(c=>String(c.id)===editCompany.dataset.id); if(!row) return; const f=$('#companyForm'); f.id.value=row.id; f.name.value=row.name; f.code.value=row.code||''; }
-      if(deleteCompany){ if(!confirm('Xóa công ty này?')) return; try{ await api(`/api/companies/${deleteCompany.dataset.id}`,{method:'DELETE'}); await loadCompaniesAndDepartmentsTables(); showFlash('Đã xóa công ty'); }catch(err){ showFlash(err.message,false); } }
-      if(editDepartment){ const row=state.departments.find(d=>String(d.id)===editDepartment.dataset.id); if(!row) return; const f=$('#departmentForm'); f.id.value=row.id; f.name.value=row.name; }
-      if(deleteDepartment){ if(!confirm('Xóa phòng ban này?')) return; try{ await api(`/api/departments/${deleteDepartment.dataset.id}`,{method:'DELETE'}); await loadCompaniesAndDepartmentsTables(); showFlash('Đã xóa phòng ban'); }catch(err){ showFlash(err.message,false); } }
+
+      if (editUser) {
+        const u = state.users.find(x => String(x.id) === editUser.dataset.id);
+        if (!u) return;
+        switchPanel('panel-admin-users');
+        const f = $('#userForm');
+        f.querySelector('[name=id]').value = u.id;
+        f.username.value = u.username;
+        f.password.value = '';
+        f.email.value = u.email || '';
+        f.full_name.value = u.full_name;
+        f.role.value = u.role;
+        f.account_type.value = u.account_type;
+        f.department_id.value = u.department_id || '';
+        f.employment_start_date.value = u.employment_start_date || '';
+        f.annual_leave_manual_adjustment.value = u.annual_leave_manual_adjustment || 0;
+        Array.from($('#userCompanySelect').options).forEach(op => op.selected = (u.company_ids || []).map(String).includes(op.value));
+        Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = (u.managed_department_ids || []).map(String).includes(op.value));
+      }
+
+      if (deleteUser) {
+        if (!confirm('Xóa tài khoản này?')) return;
+        try {
+          await api(`/api/users/${deleteUser.dataset.id}`, { method: 'DELETE' });
+          await loadUsers();
+          showFlash('Đã xóa tài khoản');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+
+      if (editCompany) {
+        const row = state.companies.find(c => String(c.id) === editCompany.dataset.id);
+        if (!row) return;
+        const f = $('#companyForm');
+        f.id.value = row.id;
+        f.name.value = row.name;
+        f.code.value = row.code || '';
+      }
+
+      if (deleteCompany) {
+        if (!confirm('Xóa công ty này?')) return;
+        try {
+          await api(`/api/companies/${deleteCompany.dataset.id}`, { method: 'DELETE' });
+          await loadCompaniesAndDepartmentsTables();
+          showFlash('Đã xóa công ty');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
+
+      if (editDepartment) {
+        const row = state.departments.find(d => String(d.id) === editDepartment.dataset.id);
+        if (!row) return;
+        const f = $('#departmentForm');
+        f.id.value = row.id;
+        f.name.value = row.name;
+      }
+
+      if (deleteDepartment) {
+        if (!confirm('Xóa phòng ban này?')) return;
+        try {
+          await api(`/api/departments/${deleteDepartment.dataset.id}`, { method: 'DELETE' });
+          await loadCompaniesAndDepartmentsTables();
+          showFlash('Đã xóa phòng ban');
+        } catch (err) {
+          showFlash(err.message, false);
+        }
+      }
     });
 
-    $('#userForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const f=e.target; const hiddenId=f.querySelector('[name=id]').value; const payload={ ...formDataToObj(f), company_ids:selectedMultiValues($('#userCompanySelect')), managed_department_ids:selectedMultiValues($('#userManagedDepartmentSelect')) }; const hasId=!!hiddenId; delete payload.id; try{ await api(hasId?`/api/users/${hiddenId}`:'/api/users',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); f.reset(); f.querySelector('[name=id]').value=''; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=false); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=false); await loadUsers(); await loadConfig(); showFlash(hasId?'Đã cập nhật tài khoản':'Đã tạo tài khoản'); }catch(err){ showFlash(err.message,false); } });
-    $('#userFilterForm').addEventListener('submit',(e)=>{ e.preventDefault(); loadUsers(); }); $('#clearUserFilterBtn').onclick=()=>{ $('#userFilterForm').reset(); loadUsers(); }; $('#resetUserFormBtn').onclick=()=>{ const f=$('#userForm'); f.reset(); f.querySelector('[name=id]').value=''; Array.from($('#userCompanySelect').options).forEach(op=>op.selected=false); Array.from($('#userManagedDepartmentSelect').options).forEach(op=>op.selected=false); };
-    $('#companyForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const data=formDataToObj(e.target); const hasId=!!data.id; const id=data.id; delete data.id; try{ await api(hasId?`/api/companies/${id}`:'/api/companies',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); e.target.reset(); await loadCompaniesAndDepartmentsTables(); await loadConfig(); showFlash(hasId?'Đã cập nhật công ty':'Đã tạo công ty'); }catch(err){ showFlash(err.message,false); } });
-    $('#departmentForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const data=formDataToObj(e.target); const hasId=!!data.id; const id=data.id; delete data.id; try{ await api(hasId?`/api/departments/${id}`:'/api/departments',{method:hasId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); e.target.reset(); await loadCompaniesAndDepartmentsTables(); await loadConfig(); showFlash(hasId?'Đã cập nhật phòng ban':'Đã tạo phòng ban'); }catch(err){ showFlash(err.message,false); } });
-    $('#resetCompanyBtn').onclick=()=>$('#companyForm').reset(); $('#resetDepartmentBtn').onclick=()=>$('#departmentForm').reset();
-    $('#changePasswordForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const data=formDataToObj(e.target); try{ const r=await api('/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); $('#accountMsg').innerHTML=`<div class="message success">${esc(r.message)}</div>`; e.target.reset(); }catch(err){ $('#accountMsg').innerHTML=`<div class="message error">${esc(err.message)}</div>`; } });
+    $('#userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const hiddenId = f.querySelector('[name=id]').value;
+      const payload = {
+        ...formDataToObj(f),
+        company_ids: selectedMultiValues($('#userCompanySelect')),
+        managed_department_ids: selectedMultiValues($('#userManagedDepartmentSelect'))
+      };
+      const hasId = !!hiddenId;
+      delete payload.id;
 
-    boot().then(()=>{ if(state.me && state.me.role==='ADMIN') loadCompaniesAndDepartmentsTables(); }).catch(()=>{});
+      try {
+        await api(hasId ? `/api/users/${hiddenId}` : '/api/users', {
+          method: hasId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        f.reset();
+        f.querySelector('[name=id]').value = '';
+        Array.from($('#userCompanySelect').options).forEach(op => op.selected = false);
+        Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = false);
+
+        await Promise.allSettled([loadUsers(), loadConfig()]);
+        showFlash(hasId ? 'Đã cập nhật tài khoản' : 'Đã tạo tài khoản');
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    });
+
+    $('#userFilterForm').addEventListener('submit', (e) => { e.preventDefault(); loadUsers(); });
+    $('#clearUserFilterBtn').onclick = () => { $('#userFilterForm').reset(); loadUsers(); };
+    $('#resetUserFormBtn').onclick = () => {
+      const f = $('#userForm');
+      f.reset();
+      f.querySelector('[name=id]').value = '';
+      Array.from($('#userCompanySelect').options).forEach(op => op.selected = false);
+      Array.from($('#userManagedDepartmentSelect').options).forEach(op => op.selected = false);
+    };
+
+    $('#companyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = formDataToObj(e.target);
+      const hasId = !!data.id;
+      const id = data.id;
+      delete data.id;
+      try {
+        await api(hasId ? `/api/companies/${id}` : '/api/companies', {
+          method: hasId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        e.target.reset();
+        await Promise.allSettled([loadCompaniesAndDepartmentsTables(), loadConfig()]);
+        showFlash(hasId ? 'Đã cập nhật công ty' : 'Đã tạo công ty');
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    });
+
+    $('#departmentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = formDataToObj(e.target);
+      const hasId = !!data.id;
+      const id = data.id;
+      delete data.id;
+      try {
+        await api(hasId ? `/api/departments/${id}` : '/api/departments', {
+          method: hasId ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        e.target.reset();
+        await Promise.allSettled([loadCompaniesAndDepartmentsTables(), loadConfig()]);
+        showFlash(hasId ? 'Đã cập nhật phòng ban' : 'Đã tạo phòng ban');
+      } catch (err) {
+        showFlash(err.message, false);
+      }
+    });
+
+    $('#resetCompanyBtn').onclick = () => $('#companyForm').reset();
+    $('#resetDepartmentBtn').onclick = () => $('#departmentForm').reset();
+
+    $('#changePasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = formDataToObj(e.target);
+      try {
+        const r = await api('/api/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        $('#accountMsg').innerHTML = `<div class="message success">${esc(r.message)}</div>`;
+        e.target.reset();
+      } catch (err) {
+        $('#accountMsg').innerHTML = `<div class="message error">${esc(err.message)}</div>`;
+      }
+    });
+
+    boot().then(() => {
+      if (state.me && state.me.role === 'ADMIN' && typeof loadCompaniesAndDepartmentsTables === 'function') {
+        loadCompaniesAndDepartmentsTables();
+      }
+    }).catch(err => {
+      console.error('Lỗi boot cuối file:', err);
+    });
   </script>
 </body>
 </html>
