@@ -1190,11 +1190,6 @@
     $('#leaveForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      if (state.me?.role === 'ADMIN') {
-        $('#leaveMsg').innerHTML = `<div class="message error">Hiện backend của bạn vẫn đang bắt buộc chọn người ký cho đơn nghỉ. Admin chưa tạo đơn trực tiếp được.</div>`;
-        return;
-      }
-
       const fd = new FormData(e.target);
       try {
         const r = await fetch('/api/leave', { method: 'POST', body: fd });
