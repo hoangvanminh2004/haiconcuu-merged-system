@@ -170,7 +170,7 @@
             <div class="field"><label>Đến ngày</label><input type="date" name="to_date" required></div>
             <div class="field"><label>Từ giờ</label><input type="time" name="start_time"></div>
             <div class="field"><label>Đến giờ</label><input type="time" name="end_time"></div>
-            <div class="field" style="grid-column:span 2"><label>Người ký duyệt</label><select name="approver_id" id="approverSelect" required><option value="">Đang tải...</option></select></div>
+            <div class="field" style="grid-column:span 2"><label>Người ký duyệt</label><select name="approver_id" id="approverSelect"><option value="">Đang tải...</option></select></div>
             <div class="field" style="grid-column:1/-1"><label>Lý do</label><textarea name="reason" required></textarea></div>
             <div class="field" style="grid-column:span 2"><label>File đính kèm (nếu có)</label><input type="file" name="attachment"></div>
             <div class="actions" style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Tạo đơn nghỉ</button></div>
@@ -800,13 +800,20 @@
     }
 
     async function loadApprovers() {
+      const approverSelect = $('#approverSelect');
+
       if (!state.me || state.me.role === 'ADMIN') {
-        $('#approverSelect').innerHTML = '<option value="">Admin không cần chọn</option>';
+        approverSelect.required = false;
+        approverSelect.innerHTML = '<option value="">Admin không cần chọn</option>';
+        approverSelect.value = '';
         return;
       }
+
+      approverSelect.required = true;
+
       const data = await api('/api/approvers');
       const arr = data.approvers || [];
-      $('#approverSelect').innerHTML = arr.length
+      approverSelect.innerHTML = arr.length
         ? arr.map(a => `<option value="${a.id}">${esc(a.full_name)} - ${esc(a.role_label)}${a.department_name ? ` (${esc(a.department_name)})` : ''}</option>`).join('')
         : '<option value="">Không có người ký phù hợp</option>';
     }
